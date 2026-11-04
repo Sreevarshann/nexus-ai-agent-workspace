@@ -111,7 +111,11 @@ async def _generate(message_id: uuid.UUID) -> None:
     status, error = "complete", None
     llm = get_llm()
 
+    tool_log: list[dict[str, Any]] = []
+
     async def tool_event(type_: str, **payload: Any) -> None:
+        # persisted (compactly) so the tool trace survives reloads, not just the live stream
+        tool_log.append({"event": type_, **{k: v for k, v in payload.items() if k not in ("plan", "excerpt")}})
         await push(message_id, "tool", event=type_, **payload)
 
     try:
@@ -212,6 +216,8 @@ async def _generate(message_id: uuid.UUID) -> None:
 
     text = "".join(content)
     meta.update(model=llm.model, provider=llm.name, latency_ms=int((time.perf_counter() - started) * 1000))
+    if tool_log:
+        meta["tools"] = tool_log[:60]
     if error:
         meta["error"] = error
     async with session_scope() as db:
