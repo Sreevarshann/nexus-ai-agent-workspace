@@ -17,7 +17,7 @@ from sqlalchemy import select
 from nexus.api.deps import DB, CurrentUser, not_found
 from nexus.api.routers.projects import get_owned_project
 from nexus.db import get_sessionmaker
-from nexus.events import channel, clear_control, request_control, serialize, set_status
+from nexus.events import TERMINAL, channel, clear_control, request_control, serialize, set_status
 from nexus.jobs import enqueue
 from nexus.models import AgentRun, Artifact, Dataset, Document, Source, Task, TaskEvent, ToolCall
 from nexus.ratelimit import enforce
@@ -210,6 +210,8 @@ async def task_events(
                 last = e.id
                 yield f"id: {e.id}\nevent: task_event\ndata: {json.dumps(serialize(e), default=str)}\n\n"
             yield f"event: status\ndata: {json.dumps({'status': status})}\n\n"
+            if status in TERMINAL:
+                return  # finished tasks are fully described by the replay
             while not await request.is_disconnected():
                 msg = await pubsub.get_message(ignore_subscribe_messages=True, timeout=15)
                 if msg is None:
@@ -225,6 +227,8 @@ async def task_events(
                     yield f"event: draft\ndata: {msg['data']}\n\n"
                 elif data.get("type") == "status":
                     yield f"event: status\ndata: {msg['data']}\n\n"
+                    if data.get("status") in TERMINAL:
+                        return
                 await asyncio.sleep(0)
         finally:
             await pubsub.unsubscribe(channel(task_id))
@@ -242,10 +246,10 @@ async def cancel(task_id: uuid.UUID, user: CurrentUser, db: DB) -> dict[str, str
         return {"status": t.status}
     if t.status in ("paused", "waiting_approval", "queued"):
         # nothing is executing; record the cancellation directly
-        await set_status(task_id, "cancelled", error="Cancelled by user")
         from nexus.events import emit
 
         await emit(task_id, "task_cancelled", reason="Cancelled by user")
+        await set_status(task_id, "cancelled", error="Cancelled by user")
         return {"status": "cancelled"}
     await request_control(task_id, "cancel")
     return {"status": "cancelling"}

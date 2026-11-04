@@ -79,7 +79,8 @@ async def run_mission(task_id: uuid.UUID, *, resume: Any = None, retry: bool = F
 
     s = get_settings()
     config = {"configurable": {"thread_id": str(task_id)}, "recursion_limit": s.mission_max_steps}
-    await clear_control(task_id, "pause")
+    if resume is not None or retry:
+        await clear_control(task_id, "pause")  # a fresh start must keep a pause requested while queued
     async with checkpointer() as saver:
         builder = build_workflow_graph(snapshot) if kind == "workflow" else build_graph()
         graph = builder.compile(checkpointer=saver)
@@ -103,8 +104,8 @@ async def run_mission(task_id: uuid.UUID, *, resume: Any = None, retry: bool = F
             return "paused"
         except (MissionCancelled, asyncio.CancelledError) as e:
             reason = str(e) if isinstance(e, MissionCancelled) and str(e) else "Cancelled by user"
-            await set_status(task_id, "cancelled", error=reason)
             await emit(task_id, "task_cancelled", reason=reason)
+            await set_status(task_id, "cancelled", error=reason)
             await clear_control(task_id, "cancel")
             await _update_message(conversation_id, task_id, f"Mission cancelled: {reason}", "cancelled")
             if isinstance(e, asyncio.CancelledError):
@@ -113,8 +114,8 @@ async def run_mission(task_id: uuid.UUID, *, resume: Any = None, retry: bool = F
         except Exception as e:
             msg = f"{type(e).__name__}: {e}"[:2000]
             log.exception("mission_failed", task_id=str(task_id))
-            await set_status(task_id, "failed", error=msg)
             await emit(task_id, "task_failed", error=msg)
+            await set_status(task_id, "failed", error=msg)
             await _update_message(conversation_id, task_id, f"Mission failed: {msg}", "error")
             return "failed"
 
@@ -136,8 +137,8 @@ async def run_mission(task_id: uuid.UUID, *, resume: Any = None, retry: bool = F
             if ver
             else None,
         }
-        await set_status(task_id, "completed", result=result)
         await emit(task_id, "task_completed", **result)
+        await set_status(task_id, "completed", result=result)
         await _update_message(
             conversation_id,
             task_id,
