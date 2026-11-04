@@ -33,3 +33,5 @@ next-env.d.ts
 .claude/settings.local.json
 /backend/tests/.data/
 /.demo/
+frontend/test-results/
+frontend/playwright-report/
