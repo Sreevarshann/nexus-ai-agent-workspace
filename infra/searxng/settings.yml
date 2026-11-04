@@ -1,0 +1,14 @@
+# Minimal SearXNG configuration for NEXUS AI: JSON output enabled, limiter off (single local client).
+use_default_settings: true
+server:
+  secret_key: "overridden-by-SEARXNG_SECRET"
+  limiter: false
+  image_proxy: false
+  public_instance: false
+search:
+  safe_search: 1
+  formats:
+    - html
+    - json
+ui:
+  static_use_hash: true

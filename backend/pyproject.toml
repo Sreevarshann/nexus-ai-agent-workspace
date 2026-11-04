@@ -1,0 +1,88 @@
+[project]
+name = "nexus-backend"
+version = "0.1.0"
+description = "NEXUS AI backend: FastAPI, LangGraph agents, RAG, web research, data analysis, MCP"
+authors = [
+    { name = "Sreevarshann", email = "85571922+Sreevarshann@users.noreply.github.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "alembic>=1.20.1",
+    "argon2-cffi>=25.1.0",
+    "arq>=0.28.0",
+    "asyncpg>=0.32.0",
+    "duckdb>=2.0.0",
+    "email-validator>=2.3.0",
+    "fastapi>=0.162.0",
+    "fpdf2>=2.9.0",
+    "httpx>=0.28.1",
+    "langgraph>=1.2.19",
+    "langgraph-checkpoint-postgres>=3.2.0",
+    "mcp>=2.3.0",
+    "openpyxl>=3.1.5",
+    "pandas>=3.1.1",
+    "pgvector>=0.5.1",
+    "psycopg[binary,pool]>=3.3.8",
+    "pyarrow>=26.0.1",
+    "pydantic-settings>=2.16.2",
+    "pymupdf>=2.1",
+    "python-docx>=1.2.0",
+    "python-multipart>=0.0.33",
+    "redis>=5.3.1",
+    "sqlalchemy[asyncio]>=2.1.8",
+    "sqlglot>=30.29.0",
+    "structlog>=26.1.0",
+    "trafilatura>=2.3.1",
+    "uvicorn[standard]>=0.54.0",
+]
+
+
+[build-system]
+requires = ["uv_build>=0.13.1,<0.14.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "nexus"
+
+[dependency-groups]
+dev = [
+    "fakeredis>=2.40.0",
+    "mypy>=2.4.1",
+    "pytest>=9.2.0",
+    "pytest-asyncio>=1.4.1.post1",
+    "pytest-cov>=7.1.0",
+    "respx>=0.23.1",
+    "ruff>=0.17.3",
+]
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "ASYNC", "S", "SIM", "RUF"]
+ignore = ["S101", "B008", "RUF012", "S608"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S", "B", "RUF"]
+"alembic/**" = ["E501"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = false
+check_untyped_defs = true
+warn_unused_ignores = true
+ignore_missing_imports = true
+plugins = ["pydantic.mypy"]
+packages = ["nexus"]
+mypy_path = "src"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+testpaths = ["tests"]
+markers = [
+  "live: requires a real Ollama and SearXNG (run with -m live)",
+]
+addopts = "-m 'not live'"

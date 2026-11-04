@@ -1,0 +1,89 @@
+name: nexus-ai
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: nexus
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nexus}
+      POSTGRES_DB: nexus
+    ports: ["127.0.0.1:5433:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nexus -d nexus"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "noeviction"]
+    ports: ["127.0.0.1:6380:6379"]
+    volumes: [redisdata:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  searxng:
+    image: searxng/searxng:latest
+    environment:
+      SEARXNG_SECRET: ${SEARXNG_SECRET:-change-me-searxng-secret}
+      SEARXNG_BASE_URL: http://localhost:8888/
+    ports: ["127.0.0.1:8888:8080"]
+    volumes:
+      - ./infra/searxng/settings.yml:/etc/searxng/settings.yml:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Application containers. Optional: `make dev` runs these on the host for hot reload.
+  api:
+    profiles: ["app"]
+    build: ./backend
+    env_file: [.env]
+    environment:
+      NEXUS_DATABASE_URL: postgresql+asyncpg://nexus:${POSTGRES_PASSWORD:-nexus}@postgres:5432/nexus
+      NEXUS_REDIS_URL: redis://redis:6379/0
+      NEXUS_SEARXNG_URL: http://searxng:8080
+      NEXUS_OLLAMA_URL: http://host.docker.internal:11434
+      NEXUS_DATA_DIR: /data
+    command: ["sh", "-c", "alembic upgrade head && uvicorn nexus.main:app --host 0.0.0.0 --port 8000"]
+    ports: ["127.0.0.1:8000:8000"]
+    volumes: [appdata:/data]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  worker:
+    profiles: ["app"]
+    build: ./backend
+    env_file: [.env]
+    environment:
+      NEXUS_DATABASE_URL: postgresql+asyncpg://nexus:${POSTGRES_PASSWORD:-nexus}@postgres:5432/nexus
+      NEXUS_REDIS_URL: redis://redis:6379/0
+      NEXUS_SEARXNG_URL: http://searxng:8080
+      NEXUS_OLLAMA_URL: http://host.docker.internal:11434
+      NEXUS_DATA_DIR: /data
+    command: ["arq", "nexus.worker.WorkerSettings"]
+    volumes: [appdata:/data]
+    depends_on:
+      api: { condition: service_started }
+
+  web:
+    profiles: ["app"]
+    build: ./frontend
+    environment:
+      NEXUS_API_URL: http://api:8000
+    ports: ["127.0.0.1:3000:3000"]
+    depends_on: [api]
+
+volumes:
+  pgdata:
+  redisdata:
+  appdata:
