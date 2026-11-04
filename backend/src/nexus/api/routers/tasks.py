@@ -19,7 +19,7 @@ from nexus.api.routers.projects import get_owned_project
 from nexus.db import get_sessionmaker
 from nexus.events import TERMINAL, channel, clear_control, request_control, serialize, set_status
 from nexus.jobs import enqueue
-from nexus.models import AgentRun, Artifact, Dataset, Document, Source, Task, TaskEvent, ToolCall
+from nexus.models import AgentRun, Artifact, Dataset, Document, Source, Task, TaskEvent, ToolCall, WorkflowRun
 from nexus.ratelimit import enforce
 from nexus.redis import get_redis
 
@@ -124,7 +124,12 @@ async def task_detail(task_id: uuid.UUID, user: CurrentUser, db: DB) -> dict[str
         await db.execute(select(Source).where(Source.task_id == task_id).order_by(Source.retrieved_at))
     ).scalars()
     arts = (await db.execute(select(Artifact).where(Artifact.task_id == task_id))).scalars()
+    graph = None
+    if t.kind == "workflow":
+        wr = (await db.execute(select(WorkflowRun).where(WorkflowRun.task_id == task_id))).scalar()
+        graph = wr.graph_snapshot if wr else None
     return {
+        "graph": graph,
         "task": TaskOut.model_validate(t, from_attributes=True).model_dump(mode="json"),
         "events": [serialize(e) for e in events],
         "agent_runs": [
