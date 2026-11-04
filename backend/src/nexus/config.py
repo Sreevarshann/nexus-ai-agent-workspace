@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     )
 
     env: Literal["development", "production", "test"] = "development"
-    secret_key: str = "dev-insecure-secret"
+    secret_key: str = "dev-insecure-secret"  # noqa: S105 - rejected in production
     database_url: str = "postgresql+asyncpg://nexus:nexus@localhost:5433/nexus"
     redis_url: str = "redis://localhost:6380/0"
     data_dir: Path = Path("./data")
@@ -61,7 +61,7 @@ class Settings(BaseSettings):
         # The deterministic fixture provider exists for automated tests only.
         if self.llm_provider == "fixture" and self.env != "test":
             raise ValueError("NEXUS_LLM_PROVIDER=fixture is only allowed when NEXUS_ENV=test")
-        if self.env == "production" and self.secret_key == "dev-insecure-secret":
+        if self.env == "production" and self.secret_key == "dev-insecure-secret":  # noqa: S105
             raise ValueError("Set NEXUS_SECRET_KEY in production")
         return self
 

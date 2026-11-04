@@ -12,7 +12,6 @@ dependencies = [
     "arq>=0.28.0",
     "asyncpg>=0.32.0",
     "duckdb>=2.0.0",
-    "email-validator>=2.3.0",
     "fastapi>=0.162.0",
     "fpdf2>=2.9.0",
     "httpx>=0.28.1",
@@ -56,12 +55,12 @@ dev = [
 ]
 
 [tool.ruff]
-line-length = 110
+line-length = 120
 target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "ASYNC", "S", "SIM", "RUF"]
-ignore = ["S101", "B008", "RUF012", "S608"]
+ignore = ["S101", "B008", "RUF001", "RUF012", "S608"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S", "B", "RUF"]
@@ -82,7 +81,13 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
 asyncio_default_test_loop_scope = "session"
 testpaths = ["tests"]
+pythonpath = ["src"]
 markers = [
   "live: requires a real Ollama and SearXNG (run with -m live)",
 ]
 addopts = "-m 'not live'"
+
+[[tool.mypy.overrides]]
+# LangGraph's add_node/ainvoke overloads do not model our instrumented async node wrappers.
+module = ["nexus.agents.graph", "nexus.agents.runner", "nexus.workflows.engine"]
+disable_error_code = ["call-overload", "arg-type"]

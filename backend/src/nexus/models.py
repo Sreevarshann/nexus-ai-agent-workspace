@@ -100,9 +100,7 @@ class Conversation(Base):
     __tablename__ = "conversations"
     id: Mapped[uuid.UUID] = _uuid_pk()
     user_id: Mapped[uuid.UUID] = _user_fk()
-    project_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("projects.id", ondelete="SET NULL"), index=True
-    )
+    project_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("projects.id", ondelete="SET NULL"), index=True)
     title: Mapped[str] = mapped_column(String(200), default="New conversation")
     created_at: Mapped[datetime] = _created()
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
@@ -138,9 +136,7 @@ class Task(Base):
     id: Mapped[uuid.UUID] = _uuid_pk()
     user_id: Mapped[uuid.UUID] = _user_fk()
     project_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("projects.id", ondelete="SET NULL"))
-    conversation_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("conversations.id", ondelete="SET NULL")
-    )
+    conversation_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("conversations.id", ondelete="SET NULL"))
     kind: Mapped[str] = mapped_column(String(16))  # mission | workflow | ingest
     mode: Mapped[str] = mapped_column(String(16), default="deep")
     title: Mapped[str] = mapped_column(String(240))
@@ -297,9 +293,7 @@ class Artifact(Base):
     user_id: Mapped[uuid.UUID] = _user_fk()
     project_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("projects.id", ondelete="SET NULL"))
     task_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("tasks.id", ondelete="SET NULL"))
-    conversation_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("conversations.id", ondelete="SET NULL")
-    )
+    conversation_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("conversations.id", ondelete="SET NULL"))
     title: Mapped[str] = mapped_column(String(240))
     kind: Mapped[str] = mapped_column(String(24))  # report | markdown | table | chart | analysis | json | csv
     current_version: Mapped[int] = mapped_column(Integer, default=1)
