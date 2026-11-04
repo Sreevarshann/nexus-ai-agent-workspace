@@ -37,7 +37,7 @@ export function Markdown({
   return (
     <div className={cn("nx-prose", streaming && "nx-streaming", className)}>
       <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkMath]}
+        remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: false }]]}
         rehypePlugins={[rehypeKatex, [rehypeHighlight, { detect: true, ignoreMissing: true }]]}
         components={{
           a: ({ href, children }) => {

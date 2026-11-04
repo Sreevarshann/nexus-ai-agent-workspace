@@ -211,8 +211,9 @@ def instrument(name: str, agent: str, role: str, fn: Any, check_pause: bool = Tr
 # --------------------------------------------------------------------------------------------- nodes
 
 
+_STOP_WORDS = r"on|for|in|by|across|regarding|based|and\s+(?:write|create|analy|produce|generate|summari)"
 _COMPARE = re.compile(
-    r"\b(?:compare|comparing|comparison of|versus|vs\.?)\s+(.+?)(?=\s+(?:on|for|in|by|across|regarding|based|and\s+(?:write|create|analy|produce|generate|summari))\b|[.;:?!]|$)",
+    r"\b(?:compare|comparing|comparison of|versus|vs\.?)\s+(.+?)(?=\s+(?:" + _STOP_WORDS + r")\b|[.;:?!]|$)",
     re.I,
 )
 

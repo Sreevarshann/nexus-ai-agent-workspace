@@ -15,14 +15,17 @@ from fastapi.responses import Response
 from pydantic import BaseModel, Field, ValidationError
 from sqlalchemy import select
 
-from nexus.agents.analyst import run_analysis
+from nexus.agents.analyst import narrative_messages, run_analysis
 from nexus.api.deps import DB, CurrentUser, not_found
 from nexus.api.routers.documents import read_limited
 from nexus.api.routers.projects import get_owned_project
+from nexus.artifacts.service import create_artifact
 from nexus.data.analysis import AnalysisError, Operation, execute_operation, run_sql
 from nexus.data.engine import QueryError
 from nexus.data.store import convert_to_parquet, preview, profile
 from nexus.domain.sqlguard import UnsafeSQL
+from nexus.llm.base import LLMError
+from nexus.llm.factory import get_llm
 from nexus.models import Dataset
 from nexus.rag.ingest import UploadRejected
 from nexus.tools.registry import ToolContext, ToolError, invoke
@@ -139,13 +142,43 @@ async def operation(ds_id: uuid.UUID, body: OpIn, user: CurrentUser, db: DB) -> 
 
 class AnalyzeIn(BaseModel):
     question: str = Field(min_length=3, max_length=2000)
+    narrate: bool = True
+    save_artifact: bool = False
 
 
 @router.post("/{ds_id}/analyze")
 async def analyze(ds_id: uuid.UUID, body: AnalyzeIn, user: CurrentUser, db: DB) -> dict[str, Any]:
-    """AI analyst: model plans typed operations, engine computes them. Narrative is produced via chat."""
+    """AI analyst: the model selects typed operations, DuckDB computes them, the model narrates the computed
+    values (cited as [D#]). Optionally saved as a versioned analysis artifact."""
     d = await owned(db, user.id, ds_id)
-    return await run_analysis(d, body.question)
+    analysis = await run_analysis(d, body.question)
+    narrative = ""
+    if body.narrate and analysis["results"]:
+        try:
+            narrative = (await get_llm().chat(narrative_messages(body.question, analysis))).text
+        except LLMError as e:
+            analysis["errors"].append(f"Narrative unavailable: {e}")
+    analysis["narrative"] = narrative
+    if body.save_artifact:
+        tables = [
+            {"title": f"[{r['label']}] {r['title']}", "columns": r["columns"], "rows": r["rows"][:200], "sql": r["sql"]}
+            for r in analysis["results"]
+        ]
+        charts = [
+            {"title": r["title"], **r["chart"], "columns": r["columns"], "rows": r["rows"][:500], "label": r["label"]}
+            for r in analysis["results"]
+            if r.get("chart")
+        ]
+        art = await create_artifact(
+            user.id,
+            f"Analysis: {body.question[:120]}",
+            "analysis",
+            narrative or "Computed results attached.",
+            {"tables": tables, "charts": charts, "dataset_id": str(d.id), "plan": analysis["plan"]},
+            project_id=d.project_id,
+        )
+        analysis["artifact_id"] = str(art.id)
+    return analysis
 
 
 @router.post("/{ds_id}/export")

@@ -8,6 +8,12 @@ const nextConfig: NextConfig = {
   // Compression would buffer Server-Sent Events proxied from the API.
   compress: false,
   output: "standalone",
+  experimental: {
+    // Local-model calls (analysis, long generations) can legitimately exceed the 30s default.
+    proxyTimeout: 600_000,
+    // Uploads are validated by the API (25 MB limit); the proxy must not cut them off first.
+    proxyClientMaxBodySize: "30mb",
+  },
   turbopack: {
     rules: {
       "*.css": {
