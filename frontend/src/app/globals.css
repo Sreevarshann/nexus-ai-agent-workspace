@@ -1,0 +1,181 @@
+@import "tailwindcss";
+@import "katex/dist/katex.min.css";
+@import "@xyflow/react/dist/style.css";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------------------------------------------------------------- NEXUS design tokens */
+:root {
+  --bg: #f8faff;
+  --bg-subtle: #f1f5fd;
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --ink: #0f172a;
+  --ink-2: #334155;
+  --muted: #64748b;
+  --faint: #94a3b8;
+  --line: #e2e8f0;
+  --line-strong: #cbd5e1;
+  --primary: #2563eb;
+  --primary-deep: #1d4ed8;
+  --primary-soft: #eff4ff;
+  --primary-ring: rgb(37 99 235 / 0.28);
+  --cyan: #06b6d4;
+  --success: #10b981;
+  --success-soft: #ecfdf5;
+  --warning: #f59e0b;
+  --warning-soft: #fffbeb;
+  --danger: #ef4444;
+  --danger-soft: #fef2f2;
+  --violet: #7c3aed;
+  --shadow-sm: 0 1px 2px rgb(15 23 42 / 0.04), 0 1px 1px rgb(15 23 42 / 0.03);
+  --shadow-md: 0 1px 2px rgb(15 23 42 / 0.04), 0 4px 16px -4px rgb(15 23 42 / 0.08);
+  --shadow-lg: 0 2px 6px rgb(15 23 42 / 0.05), 0 18px 40px -12px rgb(30 58 138 / 0.18);
+  --radius: 14px;
+}
+
+@theme inline {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+  --color-bg: var(--bg);
+  --color-bg-subtle: var(--bg-subtle);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-primary: var(--primary);
+  --color-primary-deep: var(--primary-deep);
+  --color-primary-soft: var(--primary-soft);
+  --color-cyan: var(--cyan);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-violet: var(--violet);
+  --shadow-card: var(--shadow-md);
+  --shadow-pop: var(--shadow-lg);
+  --radius-xl: var(--radius);
+  --animate-shimmer: shimmer 1.6s ease-in-out infinite;
+  --animate-pulse-ring: pulse-ring 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgb(37 99 235 / 0.35); }
+  70% { box-shadow: 0 0 0 8px rgb(37 99 235 / 0); }
+  100% { box-shadow: 0 0 0 0 rgb(37 99 235 / 0); }
+}
+
+@keyframes caret { 50% { opacity: 0; } }
+
+html, body { height: 100%; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection { background: rgb(37 99 235 / 0.16); }
+
+*:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* subtle grid used behind canvases and hero areas */
+.nx-grid {
+  background-image:
+    linear-gradient(to right, rgb(37 99 235 / 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(37 99 235 / 0.045) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.nx-skeleton {
+  background: linear-gradient(90deg, #eef2f9 0%, #f8fafd 40%, #eef2f9 80%);
+  background-size: 800px 100%;
+  animation: var(--animate-shimmer);
+}
+
+.nx-caret::after {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 1.05em;
+  margin-left: 2px;
+  vertical-align: -0.15em;
+  background: var(--primary);
+  border-radius: 2px;
+  animation: caret 1s steps(1) infinite;
+}
+
+.nx-scroll { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+
+/* ---------------------------------------------------------------- rich markdown */
+.nx-prose { color: var(--ink-2); font-size: 0.9375rem; line-height: 1.7; overflow-wrap: anywhere; }
+.nx-prose > * + * { margin-top: 0.8em; }
+.nx-prose h1, .nx-prose h2, .nx-prose h3, .nx-prose h4 { color: var(--ink); font-weight: 650; letter-spacing: -0.01em; line-height: 1.3; }
+.nx-prose h1 { font-size: 1.5rem; margin-top: 1.2em; }
+.nx-prose h2 { font-size: 1.15rem; margin-top: 1.4em; }
+.nx-prose h3 { font-size: 1rem; margin-top: 1.2em; }
+.nx-prose :first-child { margin-top: 0; }
+.nx-prose strong { color: var(--ink); font-weight: 620; }
+.nx-prose a { color: var(--primary); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgb(37 99 235 / 0.35); }
+.nx-prose ul { list-style: disc; padding-left: 1.3em; }
+.nx-prose ol { list-style: decimal; padding-left: 1.3em; }
+.nx-prose li + li { margin-top: 0.3em; }
+.nx-prose li::marker { color: var(--faint); }
+.nx-prose blockquote { border-left: 3px solid var(--line-strong); padding-left: 1em; color: var(--muted); }
+.nx-prose code:not(pre code) { font-family: var(--font-mono); font-size: 0.84em; background: var(--bg-subtle); border: 1px solid var(--line); padding: 0.1em 0.35em; border-radius: 6px; color: var(--primary-deep); }
+.nx-prose pre { font-family: var(--font-mono); font-size: 0.82rem; line-height: 1.6; background: #0b1220; color: #e2e8f0; border-radius: 12px; padding: 1rem 1.1rem; overflow-x: auto; }
+.nx-prose table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.85rem; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; display: block; overflow-x: auto; }
+.nx-prose thead th { background: var(--surface-2); color: var(--ink); font-weight: 600; text-align: left; }
+.nx-prose th, .nx-prose td { padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+.nx-prose tr:last-child td { border-bottom: none; }
+.nx-prose hr { border: none; border-top: 1px solid var(--line); }
+.nx-prose .katex-display { overflow-x: auto; padding: 0.3em 0; }
+
+/* highlight.js — restrained palette on dark code blocks */
+.hljs-keyword, .hljs-selector-tag, .hljs-built_in { color: #93c5fd; }
+.hljs-string, .hljs-attr { color: #86efac; }
+.hljs-number, .hljs-literal { color: #fcd34d; }
+.hljs-comment { color: #64748b; font-style: italic; }
+.hljs-title, .hljs-function { color: #67e8f9; }
+.hljs-type, .hljs-class { color: #c4b5fd; }
+
+/* React Flow theming */
+.react-flow { --xy-edge-stroke-default: #c7d2e5; --xy-edge-stroke-width-default: 1.6; --xy-background-color-default: transparent; }
+.react-flow__attribution { display: none; }
+.react-flow__controls { box-shadow: var(--shadow-md); border-radius: 10px; overflow: hidden; border: 1px solid var(--line); }
+.react-flow__controls-button { border-bottom: 1px solid var(--line); background: var(--surface); }
+.react-flow__minimap { border-radius: 12px; border: 1px solid var(--line); box-shadow: var(--shadow-md); overflow: hidden; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
+}
+
+.nx-streaming > :last-child::after {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 1.05em;
+  margin-left: 3px;
+  vertical-align: -0.15em;
+  background: var(--primary);
+  border-radius: 2px;
+  animation: caret 1s steps(1) infinite;
+}
