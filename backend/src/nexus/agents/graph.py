@@ -211,6 +211,22 @@ def instrument(name: str, agent: str, role: str, fn: Any, check_pause: bool = Tr
 # --------------------------------------------------------------------------------------------- nodes
 
 
+_COMPARE = re.compile(
+    r"\b(?:compare|comparing|comparison of|versus|vs\.?)\s+(.+?)(?=\s+(?:on|for|in|by|across|regarding|based|and\s+(?:write|create|analy|produce|generate|summari))\b|[.;:?!]|$)",
+    re.I,
+)
+
+
+def extract_entities(prompt: str) -> list[str]:
+    """Deterministic fallback for comparison targets, e.g. 'compare LangGraph with CrewAI and AutoGen'."""
+    m = _COMPARE.search(prompt)
+    if not m:
+        return []
+    parts = re.split(r"\s*(?:,|\bwith\b|\band\b|\bvs\.?\b|\bversus\b|\bto\b|\bagainst\b)\s*", m.group(1), flags=re.I)
+    out = [p.strip(" '\"") for p in parts if p and len(p.strip()) > 1 and len(p.split()) <= 4]
+    return list(dict.fromkeys(out))[:5]
+
+
 @agent_node("planner")
 async def planner(state: MissionState, ctx: ToolContext, ev: Callable[..., Awaitable[Any]]) -> dict[str, Any]:
     mode, opts = state["mode"], state.get("options", {})
@@ -243,6 +259,8 @@ async def planner(state: MissionState, ctx: ToolContext, ev: Callable[..., Await
     # Enforce mode semantics in code, not just in the prompt.
     queries = [q.strip() for q in plan.web_queries if q.strip()]
     if mode == "compare":
+        if len(plan.entities) < 2:
+            plan.entities = extract_entities(state["prompt"]) or plan.entities
         if len(plan.entities) < 2:
             raise RuntimeError("Compare mode needs at least two things to compare; name them in the prompt.")
         year = datetime.now(UTC).year
