@@ -172,6 +172,7 @@ export type Source = {
 };
 
 export type TaskDetail = {
+  graph: WorkflowGraph | null;
   task: Task;
   events: TaskEvent[];
   agent_runs: AgentRun[];
