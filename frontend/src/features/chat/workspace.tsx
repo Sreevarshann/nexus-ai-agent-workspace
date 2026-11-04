@@ -15,6 +15,7 @@ import { Composer, type ComposerSubmit } from "@/features/chat/composer";
 import { EvidencePanel } from "@/features/chat/evidence-panel";
 import { AssistantMessage, UserMessage } from "@/features/chat/message";
 import { api } from "@/lib/api";
+import { useMediaQuery } from "@/lib/use-media";
 import { keys } from "@/lib/queries";
 import type { Citation, Conversation, Message } from "@/lib/types";
 import { useUI } from "@/stores/ui";
@@ -104,6 +105,7 @@ function SeedEffect({ text }: { text: string }) {
 export function ConversationView({ id }: { id: string }) {
   const qc = useQueryClient();
   const inspectorOpen = useUI((s) => s.inspectorOpen);
+  const desktop = useMediaQuery("(min-width: 1024px)");
   const setInspector = useUI((s) => s.setInspector);
   const { data: messages, isPending, error } = useQuery({
     queryKey: keys.messages(id),
@@ -188,8 +190,8 @@ export function ConversationView({ id }: { id: string }) {
           </Button>
         </Tooltip>
       </div>
-      <div className="hidden h-full lg:block">
-        {inspectorOpen ? (
+      {desktop ? (
+        inspectorOpen ? (
           <ResizableGroup id="workspace">
             <Panel id="thread" minSize="45" defaultSize="72">{thread}</Panel>
             <ResizeHandle />
@@ -199,9 +201,10 @@ export function ConversationView({ id }: { id: string }) {
           </ResizableGroup>
         ) : (
           thread
-        )}
-      </div>
-      <div className="h-full lg:hidden">{thread}</div>
+        )
+      ) : (
+        thread
+      )}
       <CitationDialog citation={citation} onClose={() => setCitation(null)} />
     </div>
   );

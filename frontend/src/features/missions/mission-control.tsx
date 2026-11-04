@@ -18,6 +18,7 @@ import { buildModel } from "@/features/missions/model";
 import { Timeline } from "@/features/missions/timeline";
 import { useTaskLive } from "@/features/missions/use-task";
 import { api } from "@/lib/api";
+import { useMediaQuery } from "@/lib/use-media";
 import { formatDuration, timeAgo } from "@/lib/utils";
 
 function useNow(intervalMs: number): number {
@@ -35,6 +36,7 @@ export function MissionControl({ taskId }: { taskId: string }) {
   const [selected, setSelected] = React.useState<string | null>(null);
   const [dismissedApproval, setDismissedApproval] = React.useState<number | null>(null);
   const now = useNow(1000);
+  const desktop = useMediaQuery("(min-width: 1024px)");
   const data = detail.data;
   const model = React.useMemo(() => (data ? buildModel(data, events) : null), [data, events]);
   const task = data?.task;
@@ -134,7 +136,8 @@ export function MissionControl({ taskId }: { taskId: string }) {
         <div className="border-b border-[#fecaca] bg-danger-soft px-6 py-2 text-[12.5px] text-[#991b1b]"><b>Reason:</b> {task.error}</div>
       )}
 
-      <div className="hidden min-h-0 flex-1 lg:block">
+      {desktop ? (
+      <div className="min-h-0 flex-1">
         <ResizableGroup id="mission">
           <Panel id="canvas" minSize="40" defaultSize="68">
             <div className="nx-grid h-full bg-bg" aria-label="Agent workflow canvas">
@@ -147,10 +150,12 @@ export function MissionControl({ taskId }: { taskId: string }) {
           </Panel>
         </ResizableGroup>
       </div>
-      <div className="flex min-h-0 flex-1 flex-col lg:hidden">
+      ) : (
+      <div className="flex min-h-0 flex-1 flex-col">
         <div className="h-[46vh] shrink-0 border-b border-line bg-bg"><MissionCanvas model={model} selected={selectedNode?.id ?? null} onSelect={setSelected} /></div>
         <div className="min-h-0 flex-1 bg-surface">{side}</div>
       </div>
+      )}
 
       <ApprovalDialog open={approvalOpen && awaiting} onOpenChange={setApprovalOpen} request={pendingApproval?.payload.request} onDecide={decide} />
       {!events.length && <div className="sr-only"><Activity /> Waiting for the worker to start this mission</div>}
