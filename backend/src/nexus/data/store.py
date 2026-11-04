@@ -14,8 +14,20 @@ from nexus.config import get_settings
 from nexus.data.engine import _clean, run_query, sql_literal
 from nexus.rag.ingest import UploadRejected, safe_filename
 
-NUMERIC = ("TINYINT", "SMALLINT", "INTEGER", "BIGINT", "HUGEINT", "FLOAT", "DOUBLE", "DECIMAL", "UTINYINT",
-           "USMALLINT", "UINTEGER", "UBIGINT")
+NUMERIC = (
+    "TINYINT",
+    "SMALLINT",
+    "INTEGER",
+    "BIGINT",
+    "HUGEINT",
+    "FLOAT",
+    "DOUBLE",
+    "DECIMAL",
+    "UTINYINT",
+    "USMALLINT",
+    "UINTEGER",
+    "UBIGINT",
+)
 TEMPORAL = ("DATE", "TIMESTAMP", "TIMESTAMP WITH TIME ZONE", "TIME")
 
 
@@ -87,12 +99,18 @@ def profile(parquet: str | Path) -> tuple[int, list[dict[str, Any]], dict[str, A
         q = f'"{name.replace(chr(34), chr(34) * 2)}"'
         kind = kind_of(dtype)
         nulls, distinct = con.execute(f"SELECT count(*) - count({q}), approx_count_distinct({q}) FROM d").fetchone()  # type: ignore[misc]
-        col: dict[str, Any] = {"name": name, "type": dtype, "kind": kind, "nulls": int(nulls),
-                               "null_pct": round(100 * nulls / row_count, 2) if row_count else 0,
-                               "distinct": int(distinct)}
+        col: dict[str, Any] = {
+            "name": name,
+            "type": dtype,
+            "kind": kind,
+            "nulls": int(nulls),
+            "null_pct": round(100 * nulls / row_count, 2) if row_count else 0,
+            "distinct": int(distinct),
+        }
         if kind == "numeric":
             mn, mx, mean, std, med = con.execute(
-                f"SELECT min({q}), max({q}), avg({q}), stddev_samp({q}), median({q}) FROM d").fetchone()  # type: ignore[misc]
+                f"SELECT min({q}), max({q}), avg({q}), stddev_samp({q}), median({q}) FROM d"
+            ).fetchone()  # type: ignore[misc]
             col.update(min=_clean(mn), max=_clean(mx), mean=_clean(mean), std=_clean(std), median=_clean(med))
         elif kind == "temporal":
             mn, mx = con.execute(f"SELECT min({q}), max({q}) FROM d").fetchone()  # type: ignore[misc]

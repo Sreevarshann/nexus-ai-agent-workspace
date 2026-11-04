@@ -52,8 +52,9 @@ def open_sandbox(parquet_path: str | Path) -> duckdb.DuckDBPyConnection:
     return con
 
 
-def run_query(parquet_path: str | Path, sql: str, params: list[Any] | None = None, *, guarded: bool = True,
-              limit: int = 5000) -> QueryResult:
+def run_query(
+    parquet_path: str | Path, sql: str, params: list[Any] | None = None, *, guarded: bool = True, limit: int = 5000
+) -> QueryResult:
     safe_sql = guard_sql(sql, limit) if guarded else sql
     con = open_sandbox(parquet_path)
     timer = threading.Timer(get_settings().query_timeout_s, con.interrupt)
