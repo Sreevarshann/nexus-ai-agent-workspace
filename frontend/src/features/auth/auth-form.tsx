@@ -41,7 +41,8 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     try {
       const user = await api.post<User>(`/auth/${mode}`, values);
       qc.setQueryData(keys.me, user);
-      router.replace("/workspace");
+      const next = new URLSearchParams(window.location.search).get("next");
+      router.replace(next && next.startsWith("/") && !next.startsWith("//") ? next : "/workspace");
     } catch (e) {
       setError(e);
     }
