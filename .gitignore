@@ -24,8 +24,8 @@ next-env.d.ts
 !.env.example
 
 # Runtime data
-data/
-backend/data/
+/data/
+/backend/data/
 *.log
 .DS_Store
 
