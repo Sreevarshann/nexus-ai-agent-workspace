@@ -47,6 +47,7 @@ class Settings(BaseSettings):
     user_agent: str = "NEXUS-AI-Research/0.1 (+local research assistant)"
 
     # Limits
+    rate_limits_enabled: bool = True
     max_upload_bytes: int = 25 * 1024 * 1024
     max_dataset_rows: int = 2_000_000
     query_timeout_s: float = 10.0

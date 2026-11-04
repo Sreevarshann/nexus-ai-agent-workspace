@@ -6,10 +6,13 @@ import time
 
 from fastapi import HTTPException, status
 
+from nexus.config import get_settings
 from nexus.redis import get_redis
 
 
 async def enforce(key: str, limit: int, window_s: int) -> None:
+    if not get_settings().rate_limits_enabled:
+        return
     bucket = f"rl:{key}:{int(time.time() // window_s)}"
     r = get_redis()
     count = await r.incr(bucket)
