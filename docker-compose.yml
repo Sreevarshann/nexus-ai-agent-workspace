@@ -77,7 +77,10 @@ services:
 
   web:
     profiles: ["app"]
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        NEXUS_API_URL: http://api:8010
     environment:
       NEXUS_API_URL: http://api:8010
     ports: ["127.0.0.1:3000:3000"]
