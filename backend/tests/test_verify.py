@@ -11,6 +11,8 @@ EVIDENCE = {
     "S3": "Commercial operation began in 2024 after a pilot that started in 2021.",
     "D2": "[D2] Orders by year\nyear | orders\n2023 | 412\n2024 | 455",
     "S4": "The trial used one control room for 3 sites, each staffed by an average of 1.98 operators.",
+    "S5": "Storage costs fell by -12% in 2024 while the fleet added 80 units.",
+    "D3": "[D3] Growth by region\nregion | growth_pct | margin\nNorth | 12.5 | -3.2",
 }
 
 
@@ -28,7 +30,7 @@ def test_fabricated_labels_are_removed() -> None:
 def test_wrong_numbers_are_flagged() -> None:
     _, rep = verify_report("The pilot achieved 97.5 percent round-trip efficiency [S1].", EVIDENCE)
     claim = rep["claims"][0]
-    assert claim["verdict"] == "unsupported" and claim["unmatched_numbers"] == ["97.5"]
+    assert claim["verdict"] == "unsupported" and claim["unmatched_numbers"] == ["97.5%"]
 
 
 def test_data_labels_and_rounding() -> None:
@@ -143,4 +145,38 @@ def test_counts_are_not_matched_by_rounding_a_nearby_measurement() -> None:
 def test_list_markers_are_not_claim_quantities() -> None:
     assert _numbers_of("4) The pilot achieved 91.3 percent round-trip efficiency [S1].") == ("supported", [])
     assert _numbers_of("- 5. 91.3 percent round-trip efficiency was achieved in the pilot [S1].") == ("supported", [])
-    assert _numbers_of("6. 97.5 percent round-trip efficiency was achieved in the pilot [S1].")[1] == ["97.5"]
+    assert _numbers_of("6. 97.5 percent round-trip efficiency was achieved in the pilot [S1].")[1] == ["97.5%"]
+
+
+# Sign and percent are part of a number's meaning.
+
+
+def test_percent_and_percent_word_are_equivalent() -> None:
+    assert _numbers_of("The warranty guarantees 80% of capacity [S2].") == ("supported", [])
+    assert _numbers_of("Storage costs fell by -12 percent in 2024 [S5].") == ("supported", [])
+
+
+def test_percent_does_not_match_a_bare_count() -> None:
+    assert _numbers_of("The fleet added 80% more units [S5].") == ("unsupported", ["80%"])
+
+
+def test_bare_count_does_not_match_a_percent() -> None:
+    assert _numbers_of("The warranty guarantees 80 cycles of capacity [S2].") == ("unsupported", ["80"])
+
+
+def test_sign_must_agree() -> None:
+    assert _numbers_of("Storage costs fell by 12% in 2024 [S5].") == ("unsupported", ["12%"])
+    assert _numbers_of("The fleet added -80 units in 2024 [S5].") == ("unsupported", ["-80"])
+    assert _numbers_of("North growth_pct was 12.5 and margin \u22123.2 [D3].") == ("supported", [])
+    assert _numbers_of("North growth_pct was 12.5 and margin 3.2 [D3].") == ("unsupported", ["3.2"])
+
+
+def test_hyphens_in_ranges_and_names_are_not_signs() -> None:
+    evidence = {"S1": "Between 2019 and 2024 the COVID 19 backlog cleared."}
+    _, rep = verify_report("Between 2019-2024 the COVID-19 backlog cleared [S1].", evidence)
+    assert rep["claims"][0]["unmatched_numbers"] == []
+
+
+def test_percent_claim_may_cite_a_data_result() -> None:
+    # Computed results carry no percent signs; a growth_pct column value of 12.5 supports "12.5%".
+    assert _numbers_of("North growth_pct reached 12.5% by region [D3].") == ("supported", [])

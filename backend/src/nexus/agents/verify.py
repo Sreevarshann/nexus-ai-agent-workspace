@@ -4,7 +4,7 @@ This does not ask the model to grade itself. For each cited sentence it checks t
 * every cited label exists in the evidence that was actually retrieved (fabricated labels are removed),
 * the sentence shares enough content words with the cited passages (lexical support),
 * every number in the sentence appears in the cited passages or in computed data results; calendar years and
-  discrete counts (including written counts such as "three") must match exactly.
+  discrete counts (including written counts such as "three") must match exactly, and sign and percent must agree.
 """
 
 from __future__ import annotations
@@ -15,7 +15,9 @@ from decimal import Decimal
 from typing import Any
 
 _LABEL = re.compile(r"\[((?:S|D)\d+)\]")
-_NUM = re.compile(r"(?<![\w.])(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)(%?)")
+# A "-" or U+2212 minus directly before the digits is a sign unless it follows a word or number (ranges, "COVID-19").
+_NUM = re.compile(r"(?:(?<![\w.])([-\u2212+]))?(?<![\w.])(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)")
+_PERCENT_AFTER = re.compile(r"\s?%|\s+per\s?cent\b", re.IGNORECASE)
 _YEAR = re.compile(r"(?:1[89]|2[01])\d\d")  # 1800-2199 written without separators
 _LIST_MARKER = re.compile(r"^(?:[-*+]\s+)?\d{1,3}[.)]\s+")
 # Written counts from zero to ninety-nine; larger written numbers and ordinals are not recognised.
@@ -30,9 +32,9 @@ _WORD_NUM = re.compile(
 _CURRENCY = ("$", "€", "£")
 _UNIT_AFTER = re.compile(r"\s?([A-Za-z]+)")
 # An integer followed by one of these is a measurement (which may be rounded), not a discrete count.
-_UNIT_WORDS = "percent kg g mg t tonnes tons lb lbs km m cm mm metres meters metre meter square sq kw mw gw kwh mwh"
+_UNIT_WORDS = "kg g mg t tonnes tons lb lbs km m cm mm metres meters metre meter square sq kw mw gw kwh mwh gwh"
 _UNITS = frozenset(
-    (_UNIT_WORDS + " gwh w wh v kv ah mah h hr hrs hours min minutes s sec seconds ms l litres liters ml mph").split()
+    (_UNIT_WORDS + " w wh v kv ah mah h hr hrs hours min minutes s sec seconds ms l litres liters ml mph").split()
 )
 _STOP = set(
     [
@@ -138,6 +140,8 @@ class _Quantity:
     text: str  # how the value is reported when it is unmatched
     value: Decimal
     exact: bool  # years and discrete counts only match an equal value
+    percent: bool = False
+    unitless: bool = False  # a value in a computed data result, which carries no unit or percent sign
 
 
 def _is_count(raw: str, text: str, start: int, end: int) -> bool:
@@ -148,22 +152,29 @@ def _is_count(raw: str, text: str, start: int, end: int) -> bool:
     return not (unit and unit.group(1).lower() in _UNITS)
 
 
-def _quantities(text: str, *, claim: bool) -> list[_Quantity]:
+def _quantities(text: str, *, claim: bool, data: bool = False) -> list[_Quantity]:
     out = []
     for m in _NUM.finditer(text):
-        raw = m.group(1).replace(",", "")
-        exact = bool(_YEAR.fullmatch(raw)) or (not m.group(2) and _is_count(raw, text, m.start(), m.end()))
-        out.append(_Quantity(raw, Decimal(raw), claim and exact))
+        raw = m.group(2).replace(",", "")
+        sign = "-" if m.group(1) in ("-", "\u2212") else ""
+        percent = bool(_PERCENT_AFTER.match(text, m.end()))
+        exact = bool(_YEAR.fullmatch(raw)) or (not percent and _is_count(raw, text, m.start(2), m.end()))
+        shown = sign + raw + ("%" if percent else "")
+        out.append(_Quantity(shown, Decimal(sign + raw), claim and exact, percent, data))
     for m in _WORD_NUM.finditer(text):
         word = m.group(0).lower()
         if claim and word == "one":
             continue  # "one of the sites", "no one": too often not a quantity to check in a claim
         tens, unit = [*word.split("-"), ""][:2] if m.group(1) else (word, "")
-        out.append(_Quantity(word, Decimal(_WORD_VALUES[tens] + _WORD_VALUES.get(unit, 0)), claim))
+        percent = bool(_PERCENT_AFTER.match(text, m.end()))
+        value = Decimal(_WORD_VALUES[tens] + _WORD_VALUES.get(unit, 0))
+        out.append(_Quantity(word + ("%" if percent else ""), value, claim, percent, data))
     return out
 
 
 def _supported(q: _Quantity, cited: list[_Quantity]) -> bool:
+    # 80% is not supported by a bare 80 in source text; a data result's values carry no percent sign at all.
+    cited = [c for c in cited if c.percent == q.percent or (q.percent and c.unitless)]
     if q.exact:
         return any(c.value == q.value for c in cited)
     # allow display rounding
@@ -197,7 +208,7 @@ def verify_report(markdown: str, evidence_text: dict[str, str]) -> tuple[str, di
         sw = _words(body)
         cited = " ".join(evidence_text[lab] for lab in valid)
         support = len(sw & _words(cited)) / len(sw) if sw and valid else 0.0
-        cited_nums = _quantities(cited, claim=False)
+        cited_nums = [q for lab in valid for q in _quantities(evidence_text[lab], claim=False, data=lab[0] == "D")]
         unmatched = sorted({q.text for q in _quantities(body, claim=True) if not _supported(q, cited_nums)})
         checks.append(ClaimCheck(sent[:400], labels, round(support, 3), not unmatched, unknown, unmatched))
 
