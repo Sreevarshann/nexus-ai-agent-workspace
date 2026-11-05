@@ -25,7 +25,7 @@ Living checklist. Update it with every milestone so a new session can resume fro
 - [x] Chat: resumable Redis-stream SSE, chat/research/analysis/agent modes, regenerate, cancel
 - [x] MCP server (Streamable HTTP, bearer API tokens, read-only tools)
 - [x] Artifacts: versions, MD/JSON/CSV/PDF export
-- [x] Backend tests: 101 passing (fixture LLM; see `backend/tests`)
+- [x] Backend tests: 102 passing (fixture LLM; see `backend/tests`)
 - [x] Live-model / live-search smoke tests (`pytest -m live`) — 4/4 passing
 - [x] Evaluation dataset and runner (`make eval`)
 
