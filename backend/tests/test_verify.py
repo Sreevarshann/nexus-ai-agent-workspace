@@ -13,6 +13,7 @@ EVIDENCE = {
     "S4": "The trial used one control room for 3 sites, each staffed by an average of 1.98 operators.",
     "S5": "Storage costs fell by -12% in 2024 while the fleet added 80 units.",
     "D3": "[D3] Growth by region\nregion | growth_pct | margin\nNorth | 12.5 | -3.2",
+    "S6": "A cabinet weighs 540 kg, holds 1,250.5 kWh and is rated for 6,000 cycles.",
 }
 
 
@@ -180,3 +181,41 @@ def test_hyphens_in_ranges_and_names_are_not_signs() -> None:
 def test_percent_claim_may_cite_a_data_result() -> None:
     # Computed results carry no percent signs; a growth_pct column value of 12.5 supports "12.5%".
     assert _numbers_of("North growth_pct reached 12.5% by region [D3].") == ("supported", [])
+
+
+# Measurements may be rounded to the claim's displayed precision, and no further.
+
+
+def test_measurement_rounded_to_claim_precision_is_supported() -> None:
+    assert _numbers_of("The pilot achieved 91 percent round-trip efficiency [S1].")[1] == []
+    assert _numbers_of("The pilot achieved 91.30 percent round-trip efficiency [S1].")[1] == []
+    assert _numbers_of("A cabinet holds 1,251 kWh [S6].")[1] == []
+    assert _numbers_of("A cabinet holds 1250.5 kWh [S6].")[1] == []
+
+
+def test_measurement_outside_rounding_is_flagged() -> None:
+    assert _numbers_of("The pilot achieved 92 percent round-trip efficiency [S1].")[1] == ["92%"]
+    assert _numbers_of("A cabinet holds 1,252 kWh [S6].")[1] == ["1252"]
+
+
+def test_claims_more_precise_than_the_evidence_are_flagged() -> None:
+    assert _numbers_of("The pilot achieved 91.34 percent round-trip efficiency [S1].")[1] == ["91.34%"]
+
+
+def test_relative_tolerance_no_longer_accepts_nearby_values() -> None:
+    # Each of these was within the old 0.5% tolerance of the cited value.
+    assert _numbers_of("A cabinet weighs 542 kg [S6].")[1] == ["542"]
+    assert _numbers_of("A cabinet is rated for 6,030 cycles [S6].")[1] == ["6030"]
+
+
+def test_data_results_in_scientific_notation() -> None:
+    # result_text() shows floats with four significant figures: 20068214.8 becomes 2.007e+07.
+    evidence = {"D1": "[D1] Revenue by region (group)\nregion | revenue\nNorth | 2.007e+07\nSouth | -1234"}
+    for claim, unmatched in [
+        ("North generated 20,068,215 in revenue [D1].", []),
+        ("North generated 2.007e+07 in revenue [D1].", []),
+        ("North generated 20,100,000 in revenue [D1].", ["20100000"]),
+        ("South generated -1,234 in revenue [D1].", []),
+        ("South generated 1,234 in revenue [D1].", ["1234"]),
+    ]:
+        assert verify_report(claim, evidence)[1]["claims"][0]["unmatched_numbers"] == unmatched, claim

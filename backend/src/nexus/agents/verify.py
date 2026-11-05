@@ -16,7 +16,7 @@ from typing import Any
 
 _LABEL = re.compile(r"\[((?:S|D)\d+)\]")
 # A "-" or U+2212 minus directly before the digits is a sign unless it follows a word or number (ranges, "COVID-19").
-_NUM = re.compile(r"(?:(?<![\w.])([-\u2212+]))?(?<![\w.])(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)")
+_NUM = re.compile(r"(?:(?<![\w.])([-\u2212+]))?(?<![\w.])(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?(?:[eE][-+]?\d+)?)")
 _PERCENT_AFTER = re.compile(r"\s?%|\s+per\s?cent\b", re.IGNORECASE)
 _YEAR = re.compile(r"(?:1[89]|2[01])\d\d")  # 1800-2199 written without separators
 _LIST_MARKER = re.compile(r"^(?:[-*+]\s+)?\d{1,3}[.)]\s+")
@@ -139,6 +139,7 @@ def _words(text: str) -> set[str]:
 class _Quantity:
     text: str  # how the value is reported when it is unmatched
     value: Decimal
+    resolution: Decimal  # one unit in the last displayed digit: 1 for "91", 0.1 for "91.3", 10000 for "2.007e+07"
     exact: bool  # years and discrete counts only match an equal value
     percent: bool = False
     unitless: bool = False  # a value in a computed data result, which carries no unit or percent sign
@@ -146,7 +147,7 @@ class _Quantity:
 
 def _is_count(raw: str, text: str, start: int, end: int) -> bool:
     """A bare integer below 1000 with no percent, currency or measurement unit is read as a discrete count."""
-    if "." in raw or Decimal(raw) >= 1000 or text[start - 1 : start] in _CURRENCY:
+    if not raw.isdigit() or Decimal(raw) >= 1000 or text[start - 1 : start] in _CURRENCY:
         return False
     unit = _UNIT_AFTER.match(text, end)
     return not (unit and unit.group(1).lower() in _UNITS)
@@ -160,7 +161,9 @@ def _quantities(text: str, *, claim: bool, data: bool = False) -> list[_Quantity
         percent = bool(_PERCENT_AFTER.match(text, m.end()))
         exact = bool(_YEAR.fullmatch(raw)) or (not percent and _is_count(raw, text, m.start(2), m.end()))
         shown = sign + raw + ("%" if percent else "")
-        out.append(_Quantity(shown, Decimal(sign + raw), claim and exact, percent, data))
+        value = Decimal(sign + raw)
+        resolution = Decimal(1).scaleb(int(value.as_tuple().exponent))
+        out.append(_Quantity(shown, value, resolution, claim and exact, percent, data))
     for m in _WORD_NUM.finditer(text):
         word = m.group(0).lower()
         if claim and word == "one":
@@ -168,7 +171,7 @@ def _quantities(text: str, *, claim: bool, data: bool = False) -> list[_Quantity
         tens, unit = [*word.split("-"), ""][:2] if m.group(1) else (word, "")
         percent = bool(_PERCENT_AFTER.match(text, m.end()))
         value = Decimal(_WORD_VALUES[tens] + _WORD_VALUES.get(unit, 0))
-        out.append(_Quantity(word + ("%" if percent else ""), value, claim, percent, data))
+        out.append(_Quantity(word + ("%" if percent else ""), value, Decimal(1), claim, percent, data))
     return out
 
 
@@ -177,8 +180,9 @@ def _supported(q: _Quantity, cited: list[_Quantity]) -> bool:
     cited = [c for c in cited if c.percent == q.percent or (q.percent and c.unitless)]
     if q.exact:
         return any(c.value == q.value for c in cited)
-    # allow display rounding
-    return any(abs(c.value - q.value) <= max(Decimal("0.005") * abs(c.value), Decimal("0.051")) for c in cited)
+    # A measurement may be the cited value rounded to the claim's precision (91 or 91.3 for 91.3, not 91.35).
+    # Data results are themselves displayed at four significant figures, so their precision is allowed too.
+    return any(abs(c.value - q.value) <= max(q.resolution, c.resolution if c.unitless else 0) / 2 for c in cited)
 
 
 def split_sentences(markdown: str) -> list[str]:
