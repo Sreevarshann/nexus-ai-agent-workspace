@@ -362,7 +362,9 @@ async def _injection_live(d: dict[str, Any]) -> Measurement:
 
 # ------------------------------------------------------------------ thresholds
 # Deterministic checks are regression sets with known answers: any miss is a regression, so they require 100%.
-# Model-dependent thresholds sit at the measured baseline minus one case, to tolerate one flip, not a trend.
+# Model-dependent quality scores (recall@1, recall@5, MRR, tool selection) sit deliberately below the measured
+# baseline by one case's worth (0.1 on n=10; 0.25 on n=4), to tolerate one flip, not a trend. Page accuracy and
+# canary leaks allow no regression.
 
 
 def _t(metric: str, op: str, value: float, why: str) -> Threshold:

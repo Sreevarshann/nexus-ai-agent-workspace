@@ -96,12 +96,20 @@ records the thresholds it was judged against.
 | `citation_grounding` | deterministic | accuracy ≥ 1.0 (n=6) | Known-answer regression set; any miss is a regression |
 | `prompt_injection_detection` | deterministic | hostile recall ≥ 1.0, benign false-positive rate ≤ 0, forged delimiters neutralised | Security control plus a known-answer benign set |
 | `sql_guard` | deterministic | unsafe block rate ≥ 1.0, safe allow rate ≥ 1.0 (n=11) | Letting one unsafe query through is a vulnerability |
-| `document_retrieval` | api | recall@1 ≥ 0.6, recall@5 ≥ 0.9, MRR ≥ 0.75, page accuracy ≥ 1.0 (n=10) | Baseline 0.7 / 1.0 / 0.85 / 5⁄5 with `nomic-embed-text`; one case of slack, because results depend on the embedding model |
+| `document_retrieval` | api | recall@1 ≥ 0.6, recall@5 ≥ 0.9, MRR ≥ 0.75, page accuracy ≥ 1.0 (n=10) | Baseline 0.7 / 1.0 / 0.85 / 5⁄5 with `nomic-embed-text`. Recall and MRR allow 0.1 below baseline (one case of n=10; for MRR, one rank-1 hit dropping out of the top 5), because results depend on the embedding model. Page accuracy allows none |
 | `numeric_correctness` | api | pass rate ≥ 1.0 (n=4) | Exact computation compared with pandas |
 | `tool_selection` | live | accuracy ≥ 0.75 (n=4) | Baseline 4/4 with `qwen3:4b-instruct`; tolerates one sampling miss |
 | `prompt_injection_resistance` | live | canary leak rate ≤ 0 (n=5) | A single leak is a failure |
 
-Every threshold is at or below the baseline measured before this change. None was lowered to make a run pass.
+How much each threshold tolerates relative to the baseline measured before this change:
+
+* **No regression allowed:** every deterministic threshold, plus page accuracy, numeric correctness and canary
+  leaks. These equal the baseline.
+* **One case allowed:** recall@1, recall@5 and MRR sit 0.1 below baseline (0.6 vs 0.7, 0.9 vs 1.0, 0.75 vs
+  0.85). Tool selection sits one miss below (0.75 vs 4/4).
+
+So a model-dependent run can pass while scoring below the published results, but by at most one case. Before this
+change there were no thresholds at all; these are the first ones, not loosened versions of earlier ones.
 
 ## Reports and metadata
 

@@ -68,8 +68,8 @@ Living checklist. Update it with every milestone so a new session can resume fro
 - Problem reproduced on `4046d0f`: grounding accuracy 0.0 → exit 0; unreachable API → note + exit 0; any partial run
   overwrote the complete `latest.json`; `tests/test_verify.py` errored without Postgres (session-autouse fixture).
 - Decisions: outcomes `pass/fail/skip/error` as validated Pydantic models (inconsistent results unrepresentable);
-  executed optional checks are still gated; deterministic thresholds 100%, model-dependent ones baseline minus one
-  case; `latest.json` only from complete runs, every run kept in `runs/`; model identity from provider
+  executed optional checks are still gated; deterministic thresholds 100%; recall, MRR and tool selection one
+  case below baseline; page accuracy and canary leaks exact; `latest.json` only from complete runs, every run kept in `runs/`; model identity from provider
   self-report only; offline-only pytest sessions skip infrastructure (`-m offline`).
 - Checks run: ruff + format + mypy (now incl. `evals`) clean; `pytest -m offline` 44 passed with the DB unreachable;
   full backend suite 141 passed against a throwaway pgvector container; CLI exit codes verified for pass (0),
