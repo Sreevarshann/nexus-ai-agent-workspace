@@ -36,3 +36,36 @@ def test_data_labels_and_rounding() -> None:
 def test_uncited_evidence_reported() -> None:
     _, rep = verify_report("Warranty is 10 years or 6,000 cycles [S2].", EVIDENCE)
     assert "S1" in rep["uncited_evidence"]
+
+
+# Behaviour the numeric checks must keep while their policy changes.
+
+
+def test_comma_grouping_is_equivalent_in_both_directions() -> None:
+    _, rep = verify_report("The warranty covers 6000 cycles [S2].", EVIDENCE)
+    assert rep["claims"][0]["unmatched_numbers"] == []
+    evidence = {"S1": "The fleet completed 6000 cycles."}
+    _, rep = verify_report("The fleet completed 6,000 cycles [S1].", evidence)
+    assert rep["claims"][0]["unmatched_numbers"] == []
+
+
+def test_citation_label_digits_are_not_claim_quantities() -> None:
+    _, rep = verify_report("The pilot achieved 91.3 percent round-trip efficiency [S1][S2].", EVIDENCE)
+    assert rep["claims"][0]["unmatched_numbers"] == [] and rep["claims"][0]["verdict"] == "supported"
+
+
+def test_only_fabricated_labels_make_a_claim_unsupported() -> None:
+    cleaned, rep = verify_report("The pilot achieved 91.3 percent round-trip efficiency [S9].", EVIDENCE)
+    assert rep["claims"][0]["verdict"] == "unsupported" and cleaned.count("[S9]") == 0
+
+
+def test_every_number_in_a_claim_is_checked() -> None:
+    _, rep = verify_report("The warranty covers 10 years or 6,000 cycles at 80 percent capacity [S2].", EVIDENCE)
+    assert rep["claims"][0]["unmatched_numbers"] == []
+    _, rep = verify_report("The warranty covers 12 years or 6,000 cycles at 80 percent capacity [S2].", EVIDENCE)
+    assert rep["claims"][0]["unmatched_numbers"] == ["12"] and rep["claims"][0]["verdict"] == "unsupported"
+
+
+def test_display_rounding_of_a_measurement_is_accepted() -> None:
+    _, rep = verify_report("The pilot achieved 91 percent round-trip efficiency [S1].", EVIDENCE)
+    assert rep["claims"][0]["unmatched_numbers"] == [] and rep["claims"][0]["verdict"] == "supported"
