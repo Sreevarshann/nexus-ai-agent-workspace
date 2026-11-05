@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     openai_model: str = ""
     llm_timeout_s: float = 180.0
     temperature: float = 0.3
-    num_ctx: int = 16384
+    num_ctx: int = 8192
 
     # Web research
     search_provider: Literal["searxng", "none", "fixture"] = "searxng"
