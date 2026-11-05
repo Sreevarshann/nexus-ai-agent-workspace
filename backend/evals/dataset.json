@@ -17,12 +17,28 @@
     {"report": "The warranty covers 10 years or 6,000 cycles [S2].", "expect": "supported"},
     {"report": "The company was founded on Mars in 1850 by astronauts [S2].", "expect": "unsupported"},
     {"report": "Efficiency was 91.3 percent [S7].", "expect": "unsupported"},
-    {"report": "Each cabinet weighs 540 kg and uses 0.9 square metres [S3].", "expect": "supported"}
+    {"report": "Each cabinet weighs 540 kg and uses 0.9 square metres [S3].", "expect": "supported"},
+    {"report": "The pilot ran at 3 sites with 91.3 percent round-trip efficiency [S1].", "expect": "supported"},
+    {"report": "The pilot ran at 2 sites with 91.3 percent round-trip efficiency [S1].", "expect": "unsupported"},
+    {"report": "The pilot ran at four sites with 91.3 percent round-trip efficiency [S1].", "expect": "unsupported"},
+    {"report": "In the pilot at three sites, round-trip efficiency averaged 91 percent [S1].", "expect": "supported"},
+    {"report": "In the pilot at three sites, round-trip efficiency averaged 92 percent [S1].", "expect": "unsupported"},
+    {"report": "Northwind Energy Labs began commercial deliveries in 2024 [S4].", "expect": "supported"},
+    {"report": "Northwind Energy Labs began commercial deliveries in 2023 [S4].", "expect": "unsupported"},
+    {"report": "The warranty guarantees 80% of original capacity or 6000 full cycles [S2].", "expect": "supported"},
+    {"report": "The warranty guarantees 80 full cycles of original capacity [S2].", "expect": "unsupported"},
+    {"report": "Cell costs changed by -12% in 2024 [S5].", "expect": "supported"},
+    {"report": "Cell costs changed by 12% in 2024 [S5].", "expect": "unsupported"},
+    {"report": "North revenue reached 20,068,215 by region [D1].", "expect": "supported"},
+    {"report": "North revenue reached 21,500,000 by region [D1].", "expect": "unsupported"}
   ],
   "grounding_evidence": {
     "S1": "In a 14-month pilot at three sites, round-trip efficiency averaged 91.3 percent.",
     "S2": "Northwind Energy Labs offers a 10-year warranty guaranteeing at least 80 percent of original capacity, or 6,000 full cycles.",
-    "S3": "A cabinet weighs 540 kg and occupies 0.9 square metres of floor space."
+    "S3": "A cabinet weighs 540 kg and occupies 0.9 square metres of floor space.",
+    "S4": "Northwind Energy Labs began commercial deliveries in 2024, two years after its pilot started in 2022.",
+    "S5": "Cell costs changed by -12% in 2024 while installed storage capacity grew by 35%.",
+    "D1": "[D1] Revenue by region (group)\nregion | revenue\nNorth | 2.007e+07\nSouth | 1.384e+07"
   },
   "injection": {
     "hostile": [
