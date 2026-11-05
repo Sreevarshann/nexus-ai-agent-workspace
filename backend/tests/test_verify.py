@@ -10,6 +10,7 @@ EVIDENCE = {
     "D1": "[D1] Revenue by region\nregion | revenue\nNorth | 20068214.8",
     "S3": "Commercial operation began in 2024 after a pilot that started in 2021.",
     "D2": "[D2] Orders by year\nyear | orders\n2023 | 412\n2024 | 455",
+    "S4": "The trial used one control room for 3 sites, each staffed by an average of 1.98 operators.",
 }
 
 
@@ -102,3 +103,44 @@ def test_every_year_in_a_claim_must_be_cited() -> None:
 def test_years_in_data_results_match_exactly() -> None:
     assert _numbers_of("Orders by year reached 455 in 2024 [D2].") == ("supported", [])
     assert _numbers_of("Orders by year reached 455 in 2025 [D2].") == ("unsupported", ["2025"])
+
+
+# Discrete counts, digits or written, are compared exactly.
+
+
+def test_wrong_small_count_is_flagged() -> None:
+    assert _numbers_of("The pilot ran at 2 commercial sites [S1].") == ("unsupported", ["2"])
+
+
+def test_written_count_matches_its_digits() -> None:
+    assert _numbers_of("The pilot ran at 3 commercial sites [S1].") == ("supported", [])
+    assert _numbers_of("The trial covered three sites from a control room [S4].") == ("supported", [])
+    assert _numbers_of("The trial used 1 control room for its sites [S4].") == ("supported", [])
+
+
+def test_written_count_mismatch_is_flagged() -> None:
+    assert _numbers_of("The pilot ran at 4 commercial sites [S1].") == ("unsupported", ["4"])
+    assert _numbers_of("The trial covered four sites from a control room [S4].") == ("unsupported", ["four"])
+
+
+def test_hyphenated_written_counts() -> None:
+    evidence = {"S1": "The survey reached 25 utilities across the region."}
+    _, rep = verify_report("The survey reached twenty-five utilities [S1].", evidence)
+    assert rep["claims"][0]["unmatched_numbers"] == []
+    _, rep = verify_report("The survey reached Twenty-Six utilities [S1].", evidence)
+    assert rep["claims"][0]["unmatched_numbers"] == ["twenty-six"]
+
+
+def test_pronoun_one_is_not_a_claim_quantity() -> None:
+    assert _numbers_of("One of the commercial sites reached 91.3 percent efficiency [S1].") == ("supported", [])
+
+
+def test_counts_are_not_matched_by_rounding_a_nearby_measurement() -> None:
+    # 2 is within the old 0.051 absolute tolerance of 1.98 operators, but a count needs an equal value.
+    assert _numbers_of("The trial used one control room for 2 sites [S4].") == ("unsupported", ["2"])
+
+
+def test_list_markers_are_not_claim_quantities() -> None:
+    assert _numbers_of("4) The pilot achieved 91.3 percent round-trip efficiency [S1].") == ("supported", [])
+    assert _numbers_of("- 5. 91.3 percent round-trip efficiency was achieved in the pilot [S1].") == ("supported", [])
+    assert _numbers_of("6. 97.5 percent round-trip efficiency was achieved in the pilot [S1].")[1] == ["97.5"]
