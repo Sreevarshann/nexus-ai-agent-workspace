@@ -1,4 +1,8 @@
+import pytest
+
 from nexus.agents.verify import verify_report
+
+pytestmark = pytest.mark.offline  # pure function: runs without Postgres (pytest -m offline)
 
 EVIDENCE = {
     "S1": "The pilot achieved round-trip efficiency of 91.3 percent across three commercial sites.",
