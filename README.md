@@ -122,19 +122,23 @@ Mission Control and an exported artifact.
 
 | Suite | Command | What runs | Real model? |
 |---|---|---|---|
-| Backend | `make test-backend` | 102 tests: auth, cross-user isolation, ingestion and hybrid retrieval, chat streaming and resume, SSRF, SQL guard, typed analytics vs pandas, missions (approval, pause/resume, retry-from-checkpoint, cancel, budgets), workflows, MCP over HTTP, exports | No — deterministic fixture provider against real Postgres + pgvector |
+| Backend | `make test-backend` | 141 tests: auth, cross-user isolation, ingestion and hybrid retrieval, chat streaming and resume, SSRF, SQL guard, typed analytics vs pandas, missions (approval, pause/resume, retry-from-checkpoint, cancel, budgets), workflows, MCP over HTTP, exports | No — deterministic fixture provider against real Postgres + pgvector |
 | Live smoke | `make test-live` | Ollama streaming, embeddings, structured output; live SearXNG search and page fetch | **Yes** |
 | Frontend | `make test-frontend` | 20 Vitest tests: resumable SSE, background polling of in-flight work, mission graph derivation, composer behaviour, citation rendering, charts, auth forms | No |
 | E2E | `make e2e` | Playwright journey: register, project, streamed reply, upload + citation, dataset chart, mission, artifact download, reload persistence | **Yes** (local stack) |
-| Evaluations | `make eval` (`--live` for model checks) | See below | Partly |
+| Offline | `make test-offline` | 44 tests that need no services: evaluation gates (incl. real CLI exit codes) and the verifier | No — no Postgres, Redis or model |
+| Evaluations | `make eval` / `make eval-offline` (`EVAL_ARGS="--require-api --live"` for the full run) | See below; exits non-zero when a gate fails | Partly |
 
 The fixture provider is selectable only with `NEXUS_ENV=test` and identifies itself as `fixture` in every
 response, so a test can never be mistaken for real model behaviour.
 
 ## Evaluation methodology
 
-`backend/evals/run.py` over `backend/evals/dataset.json`; latest results in
-[evals/results/latest.md](backend/evals/results/latest.md). Measured on the development machine:
+`backend/evals/run.py` over `backend/evals/dataset.json`; latest complete results in
+[evals/results/latest.md](backend/evals/results/latest.md). Every check has an explicit threshold and outcome
+(`pass` / `fail` / `skip` / `error`); a failed or errored check, or a skipped *required* check, exits non-zero.
+Modes, thresholds, report metadata and CI guarantees: [docs/EVALUATION.md](docs/EVALUATION.md).
+Measured on the development machine:
 
 | Check | Type | Result |
 |---|---|---|
@@ -151,7 +155,8 @@ benchmarks of general model quality.
 
 ## CI/CD
 
-`.github/workflows/ci.yml`: Ruff, mypy and the backend suite against a pgvector service; deterministic evals; ESLint,
+`.github/workflows/ci.yml`: Ruff, mypy and the backend suite against a pgvector service; a service-free job that
+runs the offline tests and enforces the deterministic evaluation gates (reports uploaded even on failure); ESLint,
 `tsc`, Vitest and a production Next.js build; Docker builds for both images and a compose config check; a Gitleaks
 full-history secret scan; Mermaid diagram validation. No model API keys are needed — CI uses the fixture provider.
 Live-model, live-search and E2E suites run locally against a real stack.
