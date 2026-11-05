@@ -22,9 +22,10 @@ test("NEXUS end-to-end journey", async ({ page }) => {
   });
 
   await test.step("2. create a project", async () => {
-    page.once("dialog", (d) => void d.accept("E2E Project"));
     await page.getByRole("button", { name: "Switch project" }).click();
     await page.getByRole("menuitem", { name: "New project" }).click();
+    await page.getByLabel("Project name").fill("E2E Project");
+    await page.getByRole("button", { name: "Create project" }).click();
     await expect(page.getByRole("button", { name: "Switch project" })).toContainText("E2E Project");
   });
 

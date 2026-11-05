@@ -4,13 +4,17 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Bell, Bot, ChevronDown, Cpu, FolderKanban, LogOut, Menu, Plus, Search, Settings, UserRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import * as React from "react";
 import { toast } from "sonner";
 
 import { NAV, SETTINGS_NAV } from "@/components/shell/nav";
 import { Kbd } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { StatusDot } from "@/components/ui/status";
 import {
+  Dialog,
+  DialogContent,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -49,16 +53,33 @@ export function Topbar() {
     router.replace("/login");
   };
 
+  const [newOpen, setNewOpen] = React.useState(false);
+  const [newName, setNewName] = React.useState("");
   const createProject = async () => {
-    const name = window.prompt("Project name");
-    if (!name?.trim()) return;
-    const p = await api.post<{ id: string }>("/projects", { name: name.trim() });
-    await qc.invalidateQueries({ queryKey: ["projects"] });
-    setProject(p.id);
-    toast.success(`Project “${name.trim()}” created`);
+    const name = newName.trim();
+    if (!name) return;
+    try {
+      const p = await api.post<{ id: string }>("/projects", { name });
+      await qc.invalidateQueries({ queryKey: ["projects"] });
+      setProject(p.id);
+      setNewOpen(false);
+      setNewName("");
+      toast.success(`Project “${name}” created`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
   };
 
   return (
+    <>
+    <Dialog open={newOpen} onOpenChange={setNewOpen}>
+      <DialogContent title="New project" description="Projects group conversations, documents, datasets and artifacts.">
+        <form onSubmit={(e) => { e.preventDefault(); void createProject(); }} className="space-y-4">
+          <Input autoFocus aria-label="Project name" placeholder="e.g. Market research" value={newName} onChange={(e) => setNewName(e.target.value)} />
+          <div className="flex justify-end"><Button type="submit" disabled={!newName.trim()}>Create project</Button></div>
+        </form>
+      </DialogContent>
+    </Dialog>
     <header className="flex h-16 shrink-0 items-center gap-3 border-b border-line bg-surface/85 px-4 backdrop-blur-md md:px-6">
       <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobile(true)} aria-label="Open navigation">
         <Menu />
@@ -83,7 +104,7 @@ export function Topbar() {
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={createProject}>
+            <DropdownMenuItem onSelect={() => setNewOpen(true)}>
               <Plus /> New project
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -193,5 +214,6 @@ export function Topbar() {
         </DropdownMenu>
       </div>
     </header>
+    </>
   );
 }
