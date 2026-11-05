@@ -43,9 +43,8 @@ Living checklist. Update it with every milestone so a new session can resume fro
 - [x] History, Settings (models, MCP connectors, tokens)
 - [x] Vitest component tests
 - [x] Screenshots: 23 real captures in docs/screenshots
-- [ ] Full live E2E pass — steps 1–8 passed in one live run; later runs failed waits under memory pressure.
-      Open item: in the last run a document was `ready` in Postgres within 8 s but the Library list still showed
-      `Processing` 2 minutes later. Investigate `useDocuments` polling vs. proxy latency on a machine with free memory.
+- [x] Full live E2E pass — all 12 steps against the real model and live web (55 s). Fixed: in-flight polling
+      paused while the tab was hidden, leaving the Library on "Processing" after ingestion finished.
 
 ## Delivery
 

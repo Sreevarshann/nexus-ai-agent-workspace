@@ -59,7 +59,7 @@ test("NEXUS end-to-end journey", async ({ page }) => {
   await test.step("7-8. upload a dataset and compute an interactive chart", async () => {
     await page.goto("/data");
     await page.locator('input[type="file"]').setInputFiles(path.join(SAMPLES, "datasets/synthetic_sales_2023_2025.csv"));
-    await expect(page.getByText("9,557")).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByText("9,557", { exact: true })).toBeVisible({ timeout: 60_000 });
     await page.getByRole("tab", { name: /Chart builder/ }).click();
     await page.getByRole("button", { name: /Compute chart/ }).click();
     await expect(page.getByTestId("chart").first()).toBeVisible();
