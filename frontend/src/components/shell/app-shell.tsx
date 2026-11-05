@@ -33,13 +33,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-dvh overflow-hidden bg-bg">
-      <div className="hidden md:block">
+      <div className="hidden lg:block">
         <Sidebar />
       </div>
       <DialogPrimitive.Root open={mobileOpen} onOpenChange={setMobile}>
         <DialogPrimitive.Portal>
-          <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-[rgb(15_23_42/0.35)] md:hidden" />
-          <DialogPrimitive.Content className="fixed inset-y-0 left-0 z-50 shadow-pop md:hidden" aria-label="Navigation">
+          <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-[rgb(15_23_42/0.35)] lg:hidden" />
+          <DialogPrimitive.Content className="fixed inset-y-0 left-0 z-50 shadow-pop lg:hidden" aria-label="Navigation">
             <DialogPrimitive.Title className="sr-only">Navigation</DialogPrimitive.Title>
             <DialogPrimitive.Description className="sr-only">Primary navigation</DialogPrimitive.Description>
             <Sidebar mobile />

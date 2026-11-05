@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
   // Compression would buffer Server-Sent Events proxied from the API.
   compress: false,
   output: "standalone",
+  devIndicators: false,
   experimental: {
     // Local-model calls (analysis, long generations) can legitimately exceed the 30s default.
     proxyTimeout: 600_000,

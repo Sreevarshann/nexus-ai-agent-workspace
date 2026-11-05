@@ -12,7 +12,7 @@ export function EvidencePanel({ message, onCite }: { message: Message | undefine
   const analysis = message?.meta.analysis;
   return (
     <div className="flex h-full flex-col bg-surface/60">
-      <div className="flex h-12 items-center gap-2 border-b border-line px-4">
+      <div className="flex h-12 items-center gap-2 border-b border-line pl-4 pr-14">
         <Layers className="size-4 text-primary" />
         <span className="text-[13px] font-semibold text-ink">Evidence</span>
         {message && <span className="ml-auto text-[11.5px] text-faint">{cites.length} cited</span>}

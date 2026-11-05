@@ -81,7 +81,7 @@ export function Topbar() {
       </DialogContent>
     </Dialog>
     <header className="flex h-16 shrink-0 items-center gap-3 border-b border-line bg-surface/85 px-4 backdrop-blur-md md:px-6">
-      <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobile(true)} aria-label="Open navigation">
+      <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobile(true)} aria-label="Open navigation">
         <Menu />
       </Button>
 
@@ -119,7 +119,7 @@ export function Topbar() {
 
       <button
         onClick={() => setCommand(true)}
-        className="ml-auto hidden h-9 w-full max-w-[340px] items-center gap-2 rounded-[10px] border border-line bg-surface-2 px-3 text-[13px] text-faint transition hover:border-line-strong md:flex"
+        className="ml-auto hidden h-9 w-full max-w-[340px] items-center gap-2 rounded-[10px] border border-line bg-surface-2 px-3 text-[13px] text-faint transition hover:border-line-strong lg:flex"
         aria-label="Open command palette"
       >
         <Search className="size-4" />
@@ -127,8 +127,8 @@ export function Topbar() {
         <Kbd>⌘K</Kbd>
       </button>
 
-      <div className="ml-auto flex items-center gap-1.5 md:ml-0">
-        <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setCommand(true)} aria-label="Search">
+      <div className="ml-auto flex items-center gap-1.5 lg:ml-0">
+        <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setCommand(true)} aria-label="Search">
           <Search />
         </Button>
 

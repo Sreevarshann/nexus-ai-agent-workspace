@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 
 import { expect, type Page, test } from "@playwright/test";
@@ -9,13 +10,15 @@ const OUT = path.join(ROOT, "docs/screenshots");
 const VIEWPORTS = { "1920": { width: 1920, height: 1080 }, "1440": { width: 1440, height: 900 }, tablet: { width: 768, height: 1024 }, mobile: { width: 390, height: 844 } };
 
 async function shot(page: Page, name: string) {
+  // SKIP_EXISTING=1 resumes an interrupted capture without re-shooting finished images
+  if (process.env.SKIP_EXISTING && fs.existsSync(path.join(OUT, `${name}.png`))) return;
   await page.waitForLoadState("networkidle").catch(() => undefined);
   await page.waitForTimeout(800);
   await page.screenshot({ path: path.join(OUT, `${name}.png`) });
 }
 
 test("capture product screenshots", async ({ page, browser }) => {
-  test.setTimeout(10 * 60_000);
+  test.setTimeout(45 * 60_000);
   await page.setViewportSize(VIEWPORTS["1440"]);
   await page.goto("/login");
   await shot(page, "login");
@@ -40,10 +43,13 @@ test("capture product screenshots", async ({ page, browser }) => {
   if (cited[0]) {
     await page.goto(`/workspace/${cited[0]}`);
     await expect(page.locator(".nx-prose").first()).toBeVisible();
-    await shot(page, "workspace-conversation-1440");
-    await page.getByRole("button", { name: /^Citation S\d+$/ }).first().click();
+    const chip = page.getByRole("button", { name: /^Citation S\d+$/ }).first();
+    await chip.scrollIntoViewIfNeeded();
+    await chip.click(); // also selects that answer, filling the evidence panel
     await shot(page, "citation-inspector");
     await page.keyboard.press("Escape");
+    await chip.scrollIntoViewIfNeeded();
+    await shot(page, "workspace-conversation-1440");
   }
 
   const tasks = await (await api.get("/api/tasks?kind=mission")).json();
