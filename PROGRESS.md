@@ -26,27 +26,34 @@ Living checklist. Update it with every milestone so a new session can resume fro
 - [x] MCP server (Streamable HTTP, bearer API tokens, read-only tools)
 - [x] Artifacts: versions, MD/JSON/CSV/PDF export
 - [x] Backend tests: 101 passing (fixture LLM; see `backend/tests`)
-- [ ] Live-model / live-search smoke tests (`pytest -m live`)
-- [ ] Evaluation dataset and runner
+- [x] Live-model / live-search smoke tests (`pytest -m live`) — 4/4 passing
+- [x] Evaluation dataset and runner (`make eval`)
 
 ## Frontend
 
-- [ ] Next.js scaffold, design system, app shell, command palette
-- [ ] Auth screens
-- [ ] Intelligence Workspace (chat)
-- [ ] Mission Control (XYFlow)
-- [ ] Deep Research Studio
-- [ ] Knowledge Library (+ PDF viewer)
-- [ ] Data Lab (+ charts)
-- [ ] Artifact Studio
-- [ ] Workflow Builder
-- [ ] History, Settings (models, MCP connectors, tokens)
-- [ ] Vitest component tests
-- [ ] Playwright E2E + screenshots
+- [x] Next.js scaffold, design system, app shell, command palette
+- [x] Auth screens
+- [x] Intelligence Workspace (chat)
+- [x] Mission Control (XYFlow)
+- [x] Deep Research Studio
+- [x] Knowledge Library (+ PDF viewer)
+- [x] Data Lab (+ charts)
+- [x] Artifact Studio
+- [x] Workflow Builder
+- [x] History, Settings (models, MCP connectors, tokens)
+- [x] Vitest component tests
+- [~] Playwright E2E + screenshots — suites written; steps 1–8 of the journey passed live; full runs are slowed by memory pressure on the dev Mac (see notes)
 
 ## Delivery
 
-- [ ] Makefile targets, Dockerfiles
-- [ ] README + docs/*
-- [ ] GitHub Actions CI
+- [x] Makefile targets, Dockerfiles
+- [x] README + docs/*
+- [x] GitHub Actions CI
 - [ ] Publish to github.com/Sreevarshann/nexus-ai-agent-workspace
+
+## Notes (2026-11-04)
+
+- The development Mac runs another project's Docker stack alongside NEXUS; swap reached ~11 GB, which made long
+  local-model runs and the full E2E journey slow. Default context reduced to 8k tokens.
+- Verified manually in the browser: streamed chat, library-grounded citations, compare mission with approval,
+  retry from checkpoint, live draft, verifier, artifact viewer, Data Lab analyst.
