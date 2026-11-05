@@ -31,7 +31,7 @@ flowchart TD
 | Document researcher | `search_documents` (hybrid RRF) over the selected documents or whole library. |
 | Data analyst | Selects operations from a profile-derived catalog; DuckDB computes; results are labelled `D#`. |
 | Synthesizer | Streams a cited Markdown report; draft deltas are published live (not persisted) for Mission Control. Compare mode also extracts a cited comparison matrix. |
-| Verifier | Deterministic: removes citation labels that do not exist, scores lexical support per cited sentence, checks every number against cited text. Charts are only drawn from verified numbers. |
+| Verifier | Deterministic: removes citation labels that do not exist, scores lexical support per cited sentence, checks every number against cited text (years and counts exactly, sign and percent preserved; see [VERIFICATION.md](VERIFICATION.md)). Charts are only drawn from verified numbers. |
 | Artifact builder | Stores a versioned report with citations, tables, charts and the verification report. |
 
 ## Controls and limits

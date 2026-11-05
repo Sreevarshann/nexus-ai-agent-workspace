@@ -198,7 +198,7 @@ model-dependent quality.
 
 ## Limitations
 
-* **Small datasets.** Grounding has 6 cases, injection 11, SQL 11, retrieval 10, tool selection 4, and canary
+* **Small datasets.** Grounding has 19 cases, injection 11, SQL 11, retrieval 10, tool selection 4, and canary
   trials 5. These are regression checks, not benchmarks. With n=10, a single case moves recall by 0.1, and the
   live checks have very wide confidence intervals.
 * **Retrieval thresholds are tied to one embedding model.** They were calibrated on `nomic-embed-text`. Changing
@@ -213,10 +213,11 @@ model-dependent quality.
 I checked these against the verifier on the current source with a one-off script:
 
 * Uncited sentences aren't verified. "It also cured cancer." with no `[S#]` produces no claim at all.
-* A wrong year passes the numeric check. A claim of "2019" against evidence that says "2024" is still `supported`.
-* A wrong small number passes. "2 commercial sites" against "three commercial sites" is `supported`.
 * Contradictions pass lexical verification. "did not achieve 91.3 percent" against "achieved 91.3 percent" is
   `supported`.
+
+Wrong years and wrong small counts, which were listed here originally, are now caught. See
+[VERIFICATION.md](VERIFICATION.md).
 
 I haven't verified these yet:
 
