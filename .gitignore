@@ -35,3 +35,10 @@ next-env.d.ts
 /.demo/
 frontend/test-results/
 frontend/playwright-report/
+
+# Evaluation outputs: per-run history and the latest-run pointer stay local / CI artifacts.
+# results/latest.{json,md} (the last complete run) is the curated, committed report.
+/backend/evals/results/runs/
+/backend/evals/results/latest-run.*
+/backend/evals/results/.lock
+/backend/evals/results/.*.tmp
