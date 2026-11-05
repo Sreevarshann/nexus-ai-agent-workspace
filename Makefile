@@ -6,7 +6,7 @@ PY := cd $(BACKEND) && PYTHONPATH=src uv run --no-sync
 CHAT_MODEL ?= qwen3:4b-instruct
 EMBED_MODEL ?= nomic-embed-text
 
-.PHONY: stop-demo help setup models up down dev api worker web migrate seed test test-backend test-frontend test-live e2e lint typecheck build screenshots demo eval clean
+.PHONY: stop-demo help setup models up down dev api worker web migrate seed test test-backend test-offline test-frontend test-live e2e lint typecheck build screenshots demo eval eval-offline clean
 
 help: ## Show available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -58,6 +58,9 @@ test: test-backend test-frontend ## Run backend and frontend unit/integration te
 test-backend: ## Backend tests (real Postgres+pgvector, fakeredis, fixture LLM)
 	$(PY) pytest -q
 
+test-offline: ## Backend tests that need no services (evaluation gates, verifier); no Postgres required
+	$(PY) pytest -q -m offline
+
 test-frontend: ## Frontend component tests (Vitest)
 	cd $(FRONTEND) && npm test
 
@@ -68,7 +71,7 @@ e2e: ## Playwright end-to-end tests against the running stack
 	cd $(FRONTEND) && npx playwright test
 
 lint: ## Ruff + ESLint
-	cd $(BACKEND) && uv run --no-sync ruff check src tests && uv run --no-sync ruff format --check src tests
+	cd $(BACKEND) && uv run --no-sync ruff check src tests evals && uv run --no-sync ruff format --check src tests evals
 	cd $(FRONTEND) && npx eslint src
 
 typecheck: ## mypy + tsc
@@ -94,8 +97,11 @@ demo: up ## Start API, worker and web in the background, seed demo data, print t
 stop-demo: ## Stop the background processes started by `make demo`
 	-@for f in .demo/*.pid; do kill $$(cat $$f) 2>/dev/null; rm -f $$f; done; echo stopped
 
-eval: ## Run the reproducible evaluation suite (writes evals/results/*.json)
-	$(PY) python -m evals.run
+eval: ## Evaluation gates; exits non-zero on failure. EVAL_ARGS="--require-api --live" for the full run
+	cd $(BACKEND) && PYTHONPATH=src:. uv run --no-sync python -m evals.run $(EVAL_ARGS)
+
+eval-offline: ## Deterministic evaluation gates only (what CI enforces); no services needed
+	cd $(BACKEND) && PYTHONPATH=src:. uv run --no-sync python -m evals.run --offline $(EVAL_ARGS)
 
 clean: ## Remove build artifacts and caches
 	rm -rf $(FRONTEND)/.next $(FRONTEND)/test-results $(FRONTEND)/playwright-report $(BACKEND)/.pytest_cache
