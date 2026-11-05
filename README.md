@@ -87,11 +87,11 @@ Requirements: macOS/Linux, Docker, Node 24, [uv](https://docs.astral.sh/uv/), [O
 ```bash
 make setup     # dependencies, .env with random secrets, Ollama models (~2.8 GB)
 make up        # Postgres + pgvector, Redis, SearXNG, migrations
-make dev       # API on :8010, worker, web on :3000
+make dev       # API on :8010, worker, web on :3001
 make seed      # in a second terminal: demo account + synthetic sample content
 ```
 
-Open http://localhost:3000 and sign in with `NEXUS_DEMO_EMAIL` / `NEXUS_DEMO_PASSWORD` from `.env`
+Open http://localhost:3001 and sign in with `NEXUS_DEMO_EMAIL` / `NEXUS_DEMO_PASSWORD` from `.env`
 (or create your own account). `make demo` does all of this in the background.
 
 ### Local LLM setup

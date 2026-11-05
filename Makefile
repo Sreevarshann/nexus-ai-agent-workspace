@@ -39,7 +39,7 @@ api: ## Run the API with reload on :8010
 worker: ## Run the background worker
 	$(PY) arq nexus.worker.WorkerSettings
 
-web: ## Run the Next.js dev server on :3000
+web: ## Run the Next.js dev server on :3001
 	cd $(FRONTEND) && npm run dev
 
 dev: up ## Start infra, then API + worker + web together (Ctrl-C stops all)
@@ -89,7 +89,7 @@ demo: up ## Start API, worker and web in the background, seed demo data, print t
 	@(cd $(FRONTEND) && nohup npm run dev > ../.demo/web.log 2>&1 & echo $$! > ../.demo/web.pid)
 	@for i in $$(seq 1 60); do curl -sf localhost:8010/api/health >/dev/null && break; sleep 1; done
 	$(MAKE) seed
-	@echo ""; echo "NEXUS AI is running: http://localhost:3000  (login: see NEXUS_DEMO_EMAIL / NEXUS_DEMO_PASSWORD in .env)"; echo "Stop with: make stop-demo"
+	@echo ""; echo "NEXUS AI is running: http://localhost:3001  (login: see NEXUS_DEMO_EMAIL / NEXUS_DEMO_PASSWORD in .env)"; echo "Stop with: make stop-demo"
 
 stop-demo: ## Stop the background processes started by `make demo`
 	-@for f in .demo/*.pid; do kill $$(cat $$f) 2>/dev/null; rm -f $$f; done; echo stopped

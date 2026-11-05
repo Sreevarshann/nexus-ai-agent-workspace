@@ -4,7 +4,7 @@ import { defineConfig, devices } from "@playwright/test";
  * E2E and screenshot suites run against a RUNNING local stack (`make dev` + `make seed`), i.e. the real local
  * model and live web search. They are therefore not part of ordinary CI; see docs/DEMO.md.
  */
-const baseURL = process.env.NEXUS_WEB_URL ?? "http://localhost:3000";
+const baseURL = process.env.NEXUS_WEB_URL ?? "http://localhost:3001";
 
 export default defineConfig({
   testDir: "./e2e",

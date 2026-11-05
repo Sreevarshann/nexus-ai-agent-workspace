@@ -83,7 +83,7 @@ services:
         NEXUS_API_URL: http://api:8010
     environment:
       NEXUS_API_URL: http://api:8010
-    ports: ["127.0.0.1:3000:3000"]
+    ports: ["127.0.0.1:3001:3000"]
     depends_on: [api]
 
 volumes:

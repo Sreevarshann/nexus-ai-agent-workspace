@@ -5,7 +5,7 @@
 ```bash
 make setup     # deps, .env with random secrets, Playwright browser, Ollama models
 make up        # Postgres, Redis, SearXNG (+ migrations)
-make dev       # API :8010, worker, web :3000
+make dev       # API :8010, worker, web :3001
 make seed      # demo account + sample content (credentials written to .env)
 ```
 

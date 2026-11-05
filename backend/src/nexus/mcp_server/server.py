@@ -117,9 +117,9 @@ def build_mcp(public_url: str = "http://localhost:8010") -> MCPServer:
 
 
 def transport_security() -> TransportSecuritySettings:
-    hosts = ["localhost:8010", "127.0.0.1:8010", "localhost:3000", "127.0.0.1:3000", "testserver"]
+    hosts = ["localhost:8010", "127.0.0.1:8010", "localhost:3001", "127.0.0.1:3001", "testserver"]
     return TransportSecuritySettings(
         enable_dns_rebinding_protection=True,
         allowed_hosts=hosts,
-        allowed_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+        allowed_origins=["http://localhost:3001", "http://127.0.0.1:3001"],
     )

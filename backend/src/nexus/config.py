@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://nexus:nexus@localhost:5433/nexus"
     redis_url: str = "redis://localhost:6380/0"
     data_dir: Path = Path("./data")
-    cors_origins: list[str] = ["http://localhost:3000"]
+    cors_origins: list[str] = ["http://localhost:3001", "http://127.0.0.1:3001"]
 
     # LLM
     llm_provider: Literal["ollama", "openai_compat", "fixture"] = "ollama"
