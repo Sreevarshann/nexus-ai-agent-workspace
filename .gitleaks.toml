@@ -1,0 +1,8 @@
+title = "NEXUS AI gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Synthetic canary used by the prompt-injection evaluation; it is not a credential"
+regexes = ['''NEXUS-CANARY-7731''']

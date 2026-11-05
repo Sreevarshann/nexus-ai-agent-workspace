@@ -188,6 +188,10 @@ async def test_event_stream_replays_after_last_event_id(client: AsyncClient, use
 def test_comparison_entity_fallback() -> None:
     from nexus.agents.graph import extract_entities
 
-    assert extract_entities("Please compare LangGraph with CrewAI and AutoGen on adoption.") == ["LangGraph", "CrewAI", "AutoGen"]
+    assert extract_entities("Please compare LangGraph with CrewAI and AutoGen on adoption.") == [
+        "LangGraph",
+        "CrewAI",
+        "AutoGen",
+    ]
     assert extract_entities("Compare PostgreSQL vs MySQL for analytics") == ["PostgreSQL", "MySQL"]
     assert extract_entities("Tell me about agent frameworks") == []

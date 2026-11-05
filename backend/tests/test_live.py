@@ -17,7 +17,9 @@ SEARXNG = "http://localhost:8888"
 def ollama() -> OllamaProvider:
     s = get_settings()
     # Same context size as the running API: a different num_ctx forces Ollama to reload the model.
-    return OllamaProvider(s.ollama_url, s.chat_model, s.embed_model, 300, GenOptions(temperature=0.1, num_ctx=s.num_ctx))
+    return OllamaProvider(
+        s.ollama_url, s.chat_model, s.embed_model, 300, GenOptions(temperature=0.1, num_ctx=s.num_ctx)
+    )
 
 
 async def test_real_model_streams_tokens() -> None:
