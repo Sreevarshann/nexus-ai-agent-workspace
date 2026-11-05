@@ -25,7 +25,7 @@ Living checklist. Update it with every milestone so a new session can resume fro
 - [x] Chat: resumable Redis-stream SSE, chat/research/analysis/agent modes, regenerate, cancel
 - [x] MCP server (Streamable HTTP, bearer API tokens, read-only tools)
 - [x] Artifacts: versions, MD/JSON/CSV/PDF export
-- [x] Backend tests: 141 passing (fixture LLM; see `backend/tests`), 44 of them offline (no services)
+- [x] Backend tests: 146 passing (fixture LLM; see `backend/tests`), 49 of them offline (no services)
 - [x] Live-model / live-search smoke tests (`pytest -m live`) — 4/4 passing
 - [x] Evaluation dataset and runner (`make eval`)
 - [x] Evaluation quality gates: explicit pass/fail/skip/error outcomes, thresholds, non-zero exit,
@@ -75,5 +75,8 @@ Living checklist. Update it with every milestone so a new session can resume fro
   full backend suite 141 passed against a throwaway pgvector container; CLI exit codes verified for pass (0),
   failing metric (1), required API unavailable (1), optional API unavailable (0), `--live` with fixture (1), usage
   error (2); `--require-api` passed against an isolated fixture-provider API stack (plumbing, not model quality).
+- Review fix: a login HTTP 5xx (or any non-401 unexpected status) is now `error`, not an optional skip; 401 stays
+  an unavailable prerequisite. After the fix: offline 49 passed, full suite 146 passed, ruff/format/mypy clean;
+  the new 5xx test failed (exit 0) on the previous code.
 - Not run here: `--require-api` with real `nomic-embed-text` and `--live` with a real model (no local models
   installed; not downloaded for this change).

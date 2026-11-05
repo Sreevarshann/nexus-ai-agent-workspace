@@ -385,3 +385,124 @@ def test_cli_retains_history_in_custom_output_dir(tmp_path: Path) -> None:
     newest = max(runs, key=lambda r: json.loads(r.read_text())["generated_at"])
     assert latest_run(out)["run_id"] == json.loads(newest.read_text())["run_id"]
     assert not list(out.glob(".*.tmp"))
+
+
+# ------------------------------------------------------------------ login classification against a stub API
+
+
+class _StubAPI:
+    """Real HTTP server standing in for the NEXUS API: answers /auth/login with a fixed status, records requests."""
+
+    def __init__(self, login_status: int):
+        from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+        from threading import Thread
+
+        stub = self
+        self.requests: list[str] = []
+
+        class Handler(BaseHTTPRequestHandler):
+            def _reply(self) -> None:
+                length = int(self.headers.get("Content-Length") or 0)
+                self.rfile.read(length)
+                stub.requests.append(f"{self.command} {self.path}")
+                code = login_status if self.path == "/api/auth/login" else 404
+                body = b'{"detail": "boom: internal stack trace with SECRET-IN-BODY"}'
+                self.send_response(code)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            do_GET = do_POST = _reply
+
+            def log_message(self, *args: Any) -> None:
+                pass
+
+        self.server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        self.url = f"http://127.0.0.1:{self.server.server_address[1]}/api"
+        Thread(target=self.server.serve_forever, daemon=True).start()
+
+    def close(self) -> None:
+        self.server.shutdown()
+        self.server.server_close()
+
+
+@pytest.fixture
+def stub_api(request: pytest.FixtureRequest) -> Any:
+    s = _StubAPI(request.param)
+    yield s
+    s.close()
+
+
+DEMO_PASSWORD = "pw-must-never-appear-in-reports"
+DEMO_ENV = {"NEXUS_DEMO_EMAIL": "demo@nexus.test", "NEXUS_DEMO_PASSWORD": DEMO_PASSWORD}
+
+
+def _all_output(p: subprocess.CompletedProcess[str], out: Path) -> str:
+    return p.stdout + p.stderr + "".join(f.read_text() for f in out.rglob("*") if f.suffix in (".json", ".md"))
+
+
+@pytest.mark.parametrize("stub_api", [500, 503], indirect=True)
+def test_cli_login_server_error_is_an_error_even_when_api_optional(stub_api: _StubAPI, tmp_path: Path) -> None:
+    """Regression: a login HTTP 5xx used to be reported as an optional skip, so a broken API exited 0."""
+    out = tmp_path / "reports"
+    p = run_cli("--api-url", stub_api.url, "--output-dir", str(out), env=DEMO_ENV)
+    assert p.returncode == EXIT_GATE_FAILED, p.stdout + p.stderr
+    rep = latest_run(out)
+    assert rep["outcome"] == "fail"
+    checks = checks_by_id(rep)
+    code = stub_api.requests and stub_api.requests[0]
+    assert code == "POST /api/auth/login"
+    for cid in ("document_retrieval", "numeric_correctness"):
+        c = checks[cid]
+        assert c["required"] is False and c["outcome"] == "error" and c["metrics"] == {}
+        assert c["reason"].startswith("ApiError: demo login failed with HTTP 5")
+    assert stub_api.requests.count("POST /api/auth/login") == 1, "the failed login is cached, not retried per check"
+    text = _all_output(p, out)
+    assert DEMO_PASSWORD not in text and "SECRET-IN-BODY" not in text
+
+
+@pytest.mark.parametrize("stub_api", [401], indirect=True)
+def test_cli_login_rejected_is_an_unavailable_prerequisite(stub_api: _StubAPI, tmp_path: Path) -> None:
+    """401 = demo account not seeded / stale credentials: a visible optional skip, a failure under --require-api."""
+    out = tmp_path / "optional"
+    p = run_cli("--api-url", stub_api.url, "--output-dir", str(out), env=DEMO_ENV)
+    assert p.returncode == EXIT_PASS, p.stdout + p.stderr
+    checks = checks_by_id(latest_run(out))
+    for cid in ("document_retrieval", "numeric_correctness"):
+        assert checks[cid]["outcome"] == "skip" and "HTTP 401" in checks[cid]["reason"]
+    req_out = tmp_path / "required"
+    p = run_cli("--require-api", "--api-url", stub_api.url, "--output-dir", str(req_out), env=DEMO_ENV)
+    assert p.returncode == EXIT_GATE_FAILED
+    assert all("required check skipped" in f for f in latest_run(req_out)["failures"])
+    assert DEMO_PASSWORD not in _all_output(p, req_out)
+
+
+@pytest.mark.parametrize("stub_api", [200], indirect=True)
+def test_cli_offline_never_contacts_the_api(stub_api: _StubAPI, tmp_path: Path) -> None:
+    p = run_cli("--offline", "--api-url", stub_api.url, "--output-dir", str(tmp_path), env=DEMO_ENV)
+    assert p.returncode == EXIT_PASS, p.stdout + p.stderr
+    assert stub_api.requests == []
+
+
+@pytest.mark.parametrize("stub_api", [500], indirect=True)
+def test_failed_login_closes_the_http_client(stub_api: _StubAPI, monkeypatch: pytest.MonkeyPatch) -> None:
+    import httpx
+
+    import evals.run as run
+
+    real_client, created = httpx.Client, []
+
+    def tracking_client(*args: Any, **kwargs: Any) -> httpx.Client:
+        created.append(real_client(*args, **kwargs))
+        return created[-1]
+
+    monkeypatch.setattr(run.httpx, "Client", tracking_client)
+    for k, v in DEMO_ENV.items():
+        monkeypatch.setenv(k, v)
+    ctx = run.Context({}, stub_api.url)
+    with pytest.raises(run.ApiError, match="HTTP 500"):
+        ctx.api()
+    with pytest.raises(run.ApiError):  # cached: no second connection attempt
+        ctx.api()
+    assert len(created) == 1 and created[0].is_closed

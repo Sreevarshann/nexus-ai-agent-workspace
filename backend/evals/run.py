@@ -53,6 +53,10 @@ DEFAULT_OUTPUT = HERE / "results"
 DEFAULT_API = os.environ.get("NEXUS_API", "http://127.0.0.1:8010/api")
 
 
+class ApiError(RuntimeError):
+    """The API answered, but not usefully (e.g. HTTP 5xx on login). Reported as ``error``, never a skip."""
+
+
 class Context:
     """Per-run inputs shared by checks. The API session is opened lazily, once, and failures are cached."""
 
@@ -60,17 +64,17 @@ class Context:
         self.data = data
         self.api_url = api_url
         self._client: httpx.Client | None = None
-        self._unavailable: Unavailable | None = None
+        self._failure: Unavailable | ApiError | None = None
         self.server_model: ModelIdentity | None = None
 
     def api(self) -> httpx.Client:
-        if self._unavailable is not None:
-            raise self._unavailable
+        if self._failure is not None:
+            raise self._failure
         if self._client is None:
             try:
                 self._client = self._connect()
-            except Unavailable as e:
-                self._unavailable = e
+            except (Unavailable, ApiError) as e:  # cached so every API check reports the same outcome
+                self._failure = e
                 raise
         return self._client
 
@@ -80,15 +84,10 @@ class Context:
             raise Unavailable("NEXUS_DEMO_EMAIL / NEXUS_DEMO_PASSWORD not set (environment or .env); run `make seed`")
         c = httpx.Client(base_url=self.api_url, timeout=120)
         try:
-            r = c.post(
-                "/auth/login", json={"email": creds["NEXUS_DEMO_EMAIL"], "password": creds["NEXUS_DEMO_PASSWORD"]}
-            )
-        except httpx.TransportError as e:
+            self._login(c, creds["NEXUS_DEMO_EMAIL"], creds["NEXUS_DEMO_PASSWORD"])
+        except BaseException:
             c.close()
-            raise Unavailable(f"API not reachable at {self.api_url} ({type(e).__name__})") from e
-        if r.status_code != 200:
-            c.close()
-            raise Unavailable(f"demo login returned HTTP {r.status_code}; is the stack seeded (`make seed`)?")
+            raise
         # The LLM provider's self-report, not the configured settings: the fixture provider ignores
         # NEXUS_EMBED_MODEL (it hashes), so /system/config would name an embedding model that was never used.
         try:
@@ -102,6 +101,24 @@ class Context:
         except (httpx.HTTPError, ValueError, KeyError, TypeError):
             self.server_model = None
         return c
+
+    def _login(self, c: httpx.Client, email: str, password: str) -> None:
+        """Only missing prerequisites are ``Unavailable``; a server that answers wrongly is an error.
+
+        Reasons carry the status code only, never the response body or the credentials.
+        """
+        try:
+            r = c.post("/auth/login", json={"email": email, "password": password})
+        except httpx.TransportError as e:
+            raise Unavailable(f"API not reachable at {self.api_url} ({type(e).__name__})") from e
+        if r.status_code == 200:
+            return
+        if r.status_code == 401:  # the API's answer to unknown/wrong credentials: demo account not seeded or stale
+            raise Unavailable(
+                "demo login rejected (HTTP 401); demo account missing or credentials stale, run `make seed`"
+            )
+        # 5xx, 429 and any other unexpected status: the API is up but broken, which must not read as a skip
+        raise ApiError(f"demo login failed with HTTP {r.status_code} from {self.api_url}")
 
     def sales_dataset_id(self) -> str:
         c = self.api()

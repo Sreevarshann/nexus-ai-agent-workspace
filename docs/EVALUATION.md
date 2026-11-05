@@ -55,7 +55,17 @@ Other options:
 * `--api-url URL`: the API to test (default `$NEXUS_API` or `http://127.0.0.1:8010/api`).
 
 API checks log in with `NEXUS_DEMO_EMAIL` / `NEXUS_DEMO_PASSWORD`, read from the environment or the repo's
-`.env` (`make seed` creates them).
+`.env` (`make seed` creates them). How the login result is classified:
+
+| Login result | Outcome of the API checks | Why |
+|---|---|---|
+| Credentials not configured, or connection refused / timed out | `skip` (`unavailable: …`) | A missing prerequisite; fails the run only with `--require-api` |
+| HTTP 401 | `skip` (`unavailable: demo login rejected …`) | The API's answer to unknown credentials: the demo account isn't seeded or the credentials are stale |
+| HTTP 5xx, 429 or any other unexpected status | `error` (`ApiError: demo login failed with HTTP …`) | The API is up but broken; this fails the run even when API checks are optional |
+
+The first failure is cached, so every API check reports the same outcome after a single login attempt. The
+HTTP client is closed when login fails. Reasons include only the status code, never the response body or the
+credentials. `--offline` never contacts the API.
 
 **Live checks never use the fixture.** `--live` refuses the deterministic fixture provider. If the in-process LLM
 is the fixture, or the API server reports `provider=fixture`, the check comes out as `error` and its fixture
@@ -163,6 +173,9 @@ before.
 * Honest unknown metadata.
 * Real CLI subprocess runs: success; failing metric; execution error; empty case set; unreachable API, both
   optional and `--require-api`; `--live` refusing the fixture; usage errors; and custom output directories.
+* Login classification against an in-test stub HTTP server: 500/503 produce `error` and exit 1 in default mode,
+  with no password or response body in any output; 401 is a skip (exit 0), which fails under `--require-api`;
+  `--offline` makes no requests; a failed login closes its client.
 
 ## What CI guarantees
 

@@ -122,11 +122,11 @@ Mission Control and an exported artifact.
 
 | Suite | Command | What runs | Real model? |
 |---|---|---|---|
-| Backend | `make test-backend` | 141 tests: auth, cross-user isolation, ingestion and hybrid retrieval, chat streaming and resume, SSRF, SQL guard, typed analytics vs pandas, missions (approval, pause/resume, retry-from-checkpoint, cancel, budgets), workflows, MCP over HTTP, exports | No — deterministic fixture provider against real Postgres + pgvector |
+| Backend | `make test-backend` | 146 tests: auth, cross-user isolation, ingestion and hybrid retrieval, chat streaming and resume, SSRF, SQL guard, typed analytics vs pandas, missions (approval, pause/resume, retry-from-checkpoint, cancel, budgets), workflows, MCP over HTTP, exports | No — deterministic fixture provider against real Postgres + pgvector |
 | Live smoke | `make test-live` | Ollama streaming, embeddings, structured output; live SearXNG search and page fetch | **Yes** |
 | Frontend | `make test-frontend` | 20 Vitest tests: resumable SSE, background polling of in-flight work, mission graph derivation, composer behaviour, citation rendering, charts, auth forms | No |
 | E2E | `make e2e` | Playwright journey: register, project, streamed reply, upload + citation, dataset chart, mission, artifact download, reload persistence | **Yes** (local stack) |
-| Offline | `make test-offline` | 44 tests that need no services: evaluation gates (incl. real CLI exit codes) and the verifier | No — no Postgres, Redis or model |
+| Offline | `make test-offline` | 49 tests that need no services: evaluation gates (incl. real CLI exit codes) and the verifier | No — no Postgres, Redis or model |
 | Evaluations | `make eval` / `make eval-offline` (`EVAL_ARGS="--require-api --live"` for the full run) | See below; exits non-zero when a gate fails | Partly |
 
 The fixture provider is selectable only with `NEXUS_ENV=test` and identifies itself as `fixture` in every
