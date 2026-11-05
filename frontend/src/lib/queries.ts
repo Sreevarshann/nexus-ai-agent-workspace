@@ -34,6 +34,14 @@ export const keys = {
   metrics: ["metrics"] as const,
 };
 
+/**
+ * Queries that track in-flight server work (ingestion, missions) keep polling while the tab is hidden.
+ * TanStack Query pauses interval refetches for hidden pages by default, and refetch-on-focus is off here, so
+ * without this a backgrounded tab kept showing "Processing" after the work had finished. Polling still stops
+ * as soon as nothing is in progress.
+ */
+export const IN_FLIGHT_POLL_MS = 1500;
+
 export const useMe = () =>
   useQuery({ queryKey: keys.me, queryFn: () => api.get<User>("/auth/me"), retry: false, staleTime: 60_000 });
 
@@ -66,13 +74,16 @@ export const useTasks = (kind?: string, refetch = true) =>
     queryFn: () => api.get<Task[]>(`/tasks${kind ? `?kind=${kind}` : ""}`),
     refetchInterval: (q) =>
       refetch && q.state.data?.some((t) => ["queued", "running"].includes(t.status)) ? 3000 : false,
+    refetchIntervalInBackground: true,
   });
 
 export const useDocuments = () =>
   useQuery({
     queryKey: keys.documents,
     queryFn: () => api.get<DocumentItem[]>("/documents"),
-    refetchInterval: (q) => (q.state.data?.some((d) => ["queued", "processing"].includes(d.status)) ? 1500 : false),
+    refetchInterval: (q) =>
+      q.state.data?.some((d) => ["queued", "processing"].includes(d.status)) ? IN_FLIGHT_POLL_MS : false,
+    refetchIntervalInBackground: true,
   });
 
 export const useDatasets = () => useQuery({ queryKey: keys.datasets, queryFn: () => api.get<Dataset[]>("/datasets") });

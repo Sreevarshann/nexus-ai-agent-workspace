@@ -184,6 +184,7 @@ function MissionMessage({ m, onCite }: { m: Message; onCite: (c: Citation) => vo
     queryKey: keys.task(taskId),
     queryFn: () => api.get<Task>(`/tasks/${taskId}`),
     refetchInterval: (q) => (q.state.data && ["completed", "failed", "cancelled"].includes(q.state.data.status) ? false : 2000),
+    refetchIntervalInBackground: true,
   });
   React.useEffect(() => {
     if (task && ["completed", "failed", "cancelled"].includes(task.status)) {
