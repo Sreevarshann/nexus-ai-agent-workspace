@@ -25,9 +25,12 @@ Living checklist. Update it with every milestone so a new session can resume fro
 - [x] Chat: resumable Redis-stream SSE, chat/research/analysis/agent modes, regenerate, cancel
 - [x] MCP server (Streamable HTTP, bearer API tokens, read-only tools)
 - [x] Artifacts: versions, MD/JSON/CSV/PDF export
-- [x] Backend tests: 102 passing (fixture LLM; see `backend/tests`)
+- [x] Backend tests: 146 passing (fixture LLM; see `backend/tests`), 49 of them offline (no services)
 - [x] Live-model / live-search smoke tests (`pytest -m live`) — 4/4 passing
 - [x] Evaluation dataset and runner (`make eval`)
+- [x] Evaluation quality gates: explicit pass/fail/skip/error outcomes, thresholds, non-zero exit,
+      `--offline` / `--require-api` / `--live`, run history + reproducibility metadata, offline tests
+      (`make test-offline`), service-free CI gate job. See docs/EVALUATION.md.
 
 ## Frontend
 
@@ -59,3 +62,21 @@ Living checklist. Update it with every milestone so a new session can resume fro
   local-model runs and the full E2E journey slow. Default context reduced to 8k tokens.
 - Verified manually in the browser: streamed chat, library-grounded citations, compare mission with approval,
   retry from checkpoint, live draft, verifier, artifact viewer, Data Lab analyst.
+
+## Evaluation quality gates (2026-11-05, branch `feat/evaluation-quality-gates`)
+
+- Problem reproduced on `4046d0f`: grounding accuracy 0.0 → exit 0; unreachable API → note + exit 0; any partial run
+  overwrote the complete `latest.json`; `tests/test_verify.py` errored without Postgres (session-autouse fixture).
+- Decisions: outcomes `pass/fail/skip/error` as validated Pydantic models (inconsistent results unrepresentable);
+  executed optional checks are still gated; deterministic thresholds 100%; recall, MRR and tool selection one
+  case below baseline; page accuracy and canary leaks exact; `latest.json` only from complete runs, every run kept in `runs/`; model identity from provider
+  self-report only; offline-only pytest sessions skip infrastructure (`-m offline`).
+- Checks run: ruff + format + mypy (now incl. `evals`) clean; `pytest -m offline` 44 passed with the DB unreachable;
+  full backend suite 141 passed against a throwaway pgvector container; CLI exit codes verified for pass (0),
+  failing metric (1), required API unavailable (1), optional API unavailable (0), `--live` with fixture (1), usage
+  error (2); `--require-api` passed against an isolated fixture-provider API stack (plumbing, not model quality).
+- Review fix: a login HTTP 5xx (or any non-401 unexpected status) is now `error`, not an optional skip; 401 stays
+  an unavailable prerequisite. After the fix: offline 49 passed, full suite 146 passed, ruff/format/mypy clean;
+  the new 5xx test failed (exit 0) on the previous code.
+- Not run here: `--require-api` with real `nomic-embed-text` and `--live` with a real model (no local models
+  installed; not downloaded for this change).

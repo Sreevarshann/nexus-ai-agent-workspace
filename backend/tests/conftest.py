@@ -159,8 +159,20 @@ class FakeSearch:
 # ------------------------------------------------------------------ app / db
 
 
+def _offline_only(session: pytest.Session) -> bool:
+    """True when every selected test is marked ``offline`` (e.g. ``pytest -m offline``)."""
+    return bool(session.items) and all(item.get_closest_marker("offline") for item in session.items)
+
+
 @pytest_asyncio.fixture(scope="session", autouse=True)
-async def _infrastructure(web_server: str) -> AsyncIterator[None]:
+async def _infrastructure(request: pytest.FixtureRequest) -> AsyncIterator[None]:
+    # Offline tests (pure functions, the evaluation gates) need no services. A session made only of them skips
+    # Postgres/Alembic entirely; any session that includes an integration test sets everything up exactly as before.
+    if _offline_only(request.session):
+        yield
+        return
+    web_server: str = request.getfixturevalue("web_server")
+
     from alembic.config import Config
     from sqlalchemy import text
 

@@ -41,13 +41,42 @@ jobs:
       - name: Ruff lint
         run: uv run --no-sync ruff check src tests evals
       - name: Ruff format
-        run: uv run --no-sync ruff format --check src tests
+        run: uv run --no-sync ruff format --check src tests evals
       - name: mypy
         run: uv run --no-sync mypy
       - name: Tests (deterministic fixture LLM, real Postgres + pgvector)
         run: uv run --no-sync pytest -q --cov=nexus --cov-report=term
-      - name: Deterministic evaluations
-        run: uv run --no-sync python -m evals.run
+
+  evals:
+    # Deliberately has no service containers: proves the deterministic gates and their tests need no Postgres,
+    # Redis, model, search engine or API key. API and live-model checks are reported as explicit skips here.
+    name: Evaluation gates · offline
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: src:.
+      EVAL_OUT: ${{ github.workspace }}/eval-reports
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - name: Offline tests (gate logic and real CLI exit codes; no services)
+        run: uv run --no-sync pytest -m offline -q
+      - name: Deterministic evaluation gate (fails the job on any failed, errored or invalid check)
+        run: uv run --no-sync python -m evals.run --offline --output-dir "$EVAL_OUT"
+      - name: Upload evaluation reports
+        # Runs after a gate failure too, so the failing report is inspectable; it cannot change the job result.
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: evaluation-reports
+          path: eval-reports/
+          if-no-files-found: warn
+          retention-days: 30
 
   frontend:
     name: Frontend · lint, types, tests, build

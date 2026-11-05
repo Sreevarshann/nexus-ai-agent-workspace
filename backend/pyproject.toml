@@ -74,7 +74,7 @@ check_untyped_defs = true
 warn_unused_ignores = true
 ignore_missing_imports = true
 plugins = ["pydantic.mypy"]
-packages = ["nexus"]
+packages = ["nexus", "evals"]
 mypy_path = "src"
 
 [tool.pytest.ini_options]
@@ -82,9 +82,10 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
 asyncio_default_test_loop_scope = "session"
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["src", "."]
 markers = [
   "live: requires a real Ollama and SearXNG (run with -m live)",
+  "offline: needs no Postgres, Redis, model or network; `pytest -m offline` runs these without any services",
 ]
 addopts = "-m 'not live'"
 
