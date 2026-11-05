@@ -3,7 +3,8 @@
 This does not ask the model to grade itself. For each cited sentence it checks that:
 * every cited label exists in the evidence that was actually retrieved (fabricated labels are removed),
 * the sentence shares enough content words with the cited passages (lexical support),
-* every number in the sentence appears in the cited passages or in computed data results.
+* every number in the sentence appears in the cited passages or in computed data results; calendar years must
+  match exactly.
 """
 
 from __future__ import annotations
@@ -14,6 +15,7 @@ from typing import Any
 
 _LABEL = re.compile(r"\[((?:S|D)\d+)\]")
 _NUM = re.compile(r"(?<![\w.])(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)(%?)")
+_YEAR = re.compile(r"(?:1[89]|2[01])\d\d")  # 1800-2199 written without separators
 _STOP = set(
     [
         "a",
@@ -120,6 +122,8 @@ def _numbers(text: str) -> set[str]:
 def _num_in(n: str, haystack_nums: set[str]) -> bool:
     if n in haystack_nums:
         return True
+    if _YEAR.fullmatch(n):
+        return False  # a calendar year is exact: 2019 must not pass as a rounding of 2024
     try:
         v = float(n)
     except ValueError:
@@ -161,7 +165,7 @@ def verify_report(markdown: str, evidence_text: dict[str, str]) -> tuple[str, di
         sw = _words(body)
         cited = " ".join(evidence_text[lab] for lab in valid)
         support = len(sw & _words(cited)) / len(sw) if sw and valid else 0.0
-        nums = {n for n in _numbers(body) if not re.fullmatch(r"(19|20)\d\d", n) and n not in {"1", "2", "3"}}
+        nums = {n for n in _numbers(body) if n not in {"1", "2", "3"}}
         cited_nums = _numbers(cited)
         unmatched = sorted(n for n in nums if not _num_in(n, cited_nums))
         checks.append(ClaimCheck(sent[:400], labels, round(support, 3), not unmatched, unknown, unmatched))

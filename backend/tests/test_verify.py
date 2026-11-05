@@ -8,6 +8,8 @@ EVIDENCE = {
     "S1": "The pilot achieved round-trip efficiency of 91.3 percent across three commercial sites.",
     "S2": "The warranty covers 10 years or 6,000 cycles, guaranteeing 80 percent capacity.",
     "D1": "[D1] Revenue by region\nregion | revenue\nNorth | 20068214.8",
+    "S3": "Commercial operation began in 2024 after a pilot that started in 2021.",
+    "D2": "[D2] Orders by year\nyear | orders\n2023 | 412\n2024 | 455",
 }
 
 
@@ -69,3 +71,34 @@ def test_every_number_in_a_claim_is_checked() -> None:
 def test_display_rounding_of_a_measurement_is_accepted() -> None:
     _, rep = verify_report("The pilot achieved 91 percent round-trip efficiency [S1].", EVIDENCE)
     assert rep["claims"][0]["unmatched_numbers"] == [] and rep["claims"][0]["verdict"] == "supported"
+
+
+# Calendar years are compared exactly.
+
+
+def _numbers_of(report: str) -> tuple[str, list[str]]:
+    claim = verify_report(report, EVIDENCE)[1]["claims"][0]
+    return claim["verdict"], claim["unmatched_numbers"]
+
+
+def test_correct_year_is_supported() -> None:
+    assert _numbers_of("Commercial operation began in 2024 after the pilot [S3].") == ("supported", [])
+
+
+def test_wrong_year_is_flagged() -> None:
+    assert _numbers_of("Commercial operation began in 2019 after the pilot [S3].") == ("unsupported", ["2019"])
+
+
+def test_adjacent_year_is_not_accepted_as_rounding() -> None:
+    # 2023 is within the 0.5% measurement tolerance of 2024; a year must still match exactly.
+    assert _numbers_of("Commercial operation began in 2023 after the pilot [S3].") == ("unsupported", ["2023"])
+
+
+def test_every_year_in_a_claim_must_be_cited() -> None:
+    assert _numbers_of("The pilot started in 2021 and commercial operation began in 2024 [S3].")[1] == []
+    assert _numbers_of("The pilot started in 2020 and commercial operation began in 2024 [S3].")[1] == ["2020"]
+
+
+def test_years_in_data_results_match_exactly() -> None:
+    assert _numbers_of("Orders by year reached 455 in 2024 [D2].") == ("supported", [])
+    assert _numbers_of("Orders by year reached 455 in 2025 [D2].") == ("unsupported", ["2025"])
