@@ -42,14 +42,17 @@ Living checklist. Update it with every milestone so a new session can resume fro
 - [x] Workflow Builder
 - [x] History, Settings (models, MCP connectors, tokens)
 - [x] Vitest component tests
-- [~] Playwright E2E + screenshots — suites written; steps 1–8 of the journey passed live; full runs are slowed by memory pressure on the dev Mac (see notes)
+- [x] Screenshots: 23 real captures in docs/screenshots
+- [ ] Full live E2E pass — steps 1–8 passed in one live run; later runs failed waits under memory pressure.
+      Open item: in the last run a document was `ready` in Postgres within 8 s but the Library list still showed
+      `Processing` 2 minutes later. Investigate `useDocuments` polling vs. proxy latency on a machine with free memory.
 
 ## Delivery
 
 - [x] Makefile targets, Dockerfiles
 - [x] README + docs/*
 - [x] GitHub Actions CI
-- [ ] Publish to github.com/Sreevarshann/nexus-ai-agent-workspace
+- [x] Published to https://github.com/Sreevarshann/nexus-ai-agent-workspace — CI green
 
 ## Notes (2026-11-04)
 
