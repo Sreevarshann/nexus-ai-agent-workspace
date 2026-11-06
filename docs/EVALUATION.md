@@ -103,7 +103,7 @@ records the thresholds it was judged against.
 
 | Check | Category | Threshold | Rationale |
 |---|---|---|---|
-| `citation_grounding` | deterministic | accuracy ≥ 1.0 (n=6) | Known-answer regression set; any miss is a regression |
+| `citation_grounding` | deterministic | accuracy ≥ 1.0 (n=25) | Known-answer regression set; any miss is a regression |
 | `prompt_injection_detection` | deterministic | hostile recall ≥ 1.0, benign false-positive rate ≤ 0, forged delimiters neutralised | Security control plus a known-answer benign set |
 | `sql_guard` | deterministic | unsafe block rate ≥ 1.0, safe allow rate ≥ 1.0 (n=11) | Letting one unsafe query through is a vulnerability |
 | `document_retrieval` | api | recall@1 ≥ 0.6, recall@5 ≥ 0.9, MRR ≥ 0.75, page accuracy ≥ 1.0 (n=10) | Baseline 0.7 / 1.0 / 0.85 / 5⁄5 with `nomic-embed-text`. Recall and MRR allow 0.1 below baseline (one case of n=10; for MRR, one rank-1 hit dropping out of the top 5), because results depend on the embedding model. Page accuracy allows none |
@@ -198,7 +198,7 @@ model-dependent quality.
 
 ## Limitations
 
-* **Small datasets.** Grounding has 6 cases, injection 11, SQL 11, retrieval 10, tool selection 4, and canary
+* **Small datasets.** Grounding has 25 cases, injection 11, SQL 11, retrieval 10, tool selection 4, and canary
   trials 5. These are regression checks, not benchmarks. With n=10, a single case moves recall by 0.1, and the
   live checks have very wide confidence intervals.
 * **Retrieval thresholds are tied to one embedding model.** They were calibrated on `nomic-embed-text`. Changing
@@ -213,10 +213,11 @@ model-dependent quality.
 I checked these against the verifier on the current source with a one-off script:
 
 * Uncited sentences aren't verified. "It also cured cancer." with no `[S#]` produces no claim at all.
-* A wrong year passes the numeric check. A claim of "2019" against evidence that says "2024" is still `supported`.
-* A wrong small number passes. "2 commercial sites" against "three commercial sites" is `supported`.
 * Contradictions pass lexical verification. "did not achieve 91.3 percent" against "achieved 91.3 percent" is
   `supported`.
+
+Wrong years and wrong small counts, which were listed here originally, are now caught. See
+[VERIFICATION.md](VERIFICATION.md).
 
 I haven't verified these yet:
 

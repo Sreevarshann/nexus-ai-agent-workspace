@@ -28,7 +28,8 @@ User documents and datasets, conversation history, API tokens, the host filesyst
 ## Known residual risks
 
 * Lexical verification cannot prove semantic entailment; a paraphrased but wrong claim with high word overlap can
-  pass. The verifier reports, it does not certify.
+  pass. The verifier reports, it does not certify. Numeric checks compare values, not which entity a value
+  belongs to ([VERIFICATION.md](VERIFICATION.md)).
 * Injection detection is pattern-based; novel phrasings are not flagged (the structural defences still apply).
 * Services bind to `127.0.0.1`; exposing them on a network would additionally require TLS and CSRF protection.
 * The fixture LLM is guarded by `NEXUS_ENV=test`; it cannot be selected in development or production.
