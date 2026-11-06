@@ -142,7 +142,7 @@ Measured on the development machine:
 
 | Check | Type | Result |
 |---|---|---|
-| Citation grounding verdicts | deterministic | 19/19 correct |
+| Citation grounding verdicts | deterministic | 25/25 correct |
 | Prompt-injection pattern detection | deterministic | 6/6 hostile flagged, 0/5 benign false positives |
 | SQL guard | deterministic | 8/8 unsafe blocked, 3/3 safe allowed |
 | Document retrieval (10 questions) | deterministic given local embeddings | recall@1 0.7, recall@5 1.0, MRR 0.85, page accuracy 5/5 |

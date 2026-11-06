@@ -30,7 +30,13 @@
     {"report": "Cell costs changed by -12% in 2024 [S5].", "expect": "supported"},
     {"report": "Cell costs changed by 12% in 2024 [S5].", "expect": "unsupported"},
     {"report": "North revenue reached 20,068,215 by region [D1].", "expect": "supported"},
-    {"report": "North revenue reached 21,500,000 by region [D1].", "expect": "unsupported"}
+    {"report": "North revenue reached 21,500,000 by region [D1].", "expect": "unsupported"},
+    {"report": "The pilot ran at one site with 91.3 percent round-trip efficiency [S1].", "expect": "unsupported"},
+    {"report": "One of the three pilot sites averaged 91.3 percent round-trip efficiency [S1].", "expect": "supported"},
+    {"report": "The pilot sites were monitored from 1 control room in Boston [S6].", "expect": "supported"},
+    {"report": "The warehouse inventory recorded 80 percent occupied capacity [D2].", "expect": "unsupported"},
+    {"report": "The warehouse inventory recorded 80 boxes of occupied capacity [D2].", "expect": "supported"},
+    {"report": "North warehouse occupancy was 80% [D3].", "expect": "supported"}
   ],
   "grounding_evidence": {
     "S1": "In a 14-month pilot at three sites, round-trip efficiency averaged 91.3 percent.",
@@ -38,7 +44,10 @@
     "S3": "A cabinet weighs 540 kg and occupies 0.9 square metres of floor space.",
     "S4": "Northwind Energy Labs began commercial deliveries in 2024, two years after its pilot started in 2022.",
     "S5": "Cell costs changed by -12% in 2024 while installed storage capacity grew by 35%.",
-    "D1": "[D1] Revenue by region (group)\nregion | revenue\nNorth | 2.007e+07\nSouth | 1.384e+07"
+    "D1": "[D1] Revenue by region (group)\nregion | revenue\nNorth | 2.007e+07\nSouth | 1.384e+07",
+    "S6": "The pilot sites were monitored from one control room in Boston.",
+    "D2": "[D2] Warehouse inventory (group)\noccupied capacity | units\n80 | boxes",
+    "D3": "[D3] Occupancy by warehouse (group)\nwarehouse | occupancy_pct\nNorth | 80"
   },
   "injection": {
     "hostile": [
