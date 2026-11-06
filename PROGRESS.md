@@ -25,7 +25,7 @@ Living checklist. Update it with every milestone so a new session can resume fro
 - [x] Chat: resumable Redis-stream SSE, chat/research/analysis/agent modes, regenerate, cancel
 - [x] MCP server (Streamable HTTP, bearer API tokens, read-only tools)
 - [x] Artifacts: versions, MD/JSON/CSV/PDF export
-- [x] Backend tests: 174 passing (fixture LLM; see `backend/tests`), 77 of them offline (no services)
+- [x] Backend tests: 180 passing (fixture LLM; see `backend/tests`), 83 of them offline (no services)
 - [x] Live-model / live-search smoke tests (`pytest -m live`) — 4/4 passing
 - [x] Evaluation dataset and runner (`make eval`)
 - [x] Evaluation quality gates: explicit pass/fail/skip/error outcomes, thresholds, non-zero exit,
@@ -92,3 +92,9 @@ Living checklist. Update it with every milestone so a new session can resume fro
 - Checks run: `test_verify.py` 33 passed (17 fail on the previous verifier); grounding gate 19/19 (0.684 and exit 1
   on the previous verifier, threshold unchanged); offline 77 passed; full suite 174 passed against a throwaway
   pgvector container; ruff/format/mypy clean. No real-model run.
+- Review fixes (2026-11-06, two false positives reproduced on `67bf771`): written "one" is now checked when the next
+  word could be what it counts ("one commercial site" vs "three sites" is flagged); it is still skipped as a
+  pronoun or idiom by a bounded word-list rule. A bare `[D#]` value no longer supports a percent claim unless its
+  column name or insight key declares a percentage (`%`, `pct`, `percent`, `percentage`); this replaces the earlier
+  "bare data values may support percents" decision. After the fixes: `test_verify.py` 39 passed (4 fail on
+  `67bf771`); grounding 25/25 (0.92 and exit 1 on `67bf771`); offline 83 passed; full suite 180 passed.

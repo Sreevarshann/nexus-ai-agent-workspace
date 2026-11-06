@@ -45,14 +45,28 @@ These rules apply to every kind:
 
 * **Sign must agree.** `12%` is not supported by `-12%`, and `-80` is not supported by `80`.
 * **Percent must agree.** `80%` is not supported by a bare `80` (for example "80 units"), and a bare `80` is not
-  supported by `80 percent`. There is one exception, for computed data results (`[D#]`). Their values never
-  carry a percent sign, so a percent claim may be supported by a bare value in a data result, such as a
-  `growth_pct` column.
+  supported by `80 percent`. Computed data results (`[D#]`) carry no unit metadata and print percentages without
+  a sign. So a bare data value supports a percent claim only when the result itself declares it a percentage:
+  its column name or insight key contains `%` or the separate token `pct`, `percent` or `percentage` (for
+  example `growth_pct`, `Share (%)`, `change_first_to_last_pct`). Data values printed with `%` match as they do
+  in source text. Otherwise the percent claim is rejected: neither the `D` label nor the value's range nor a
+  matching value is taken as evidence. A declared-percent value still supports the bare number it displays
+  ("growth_pct was 12.5").
 * **Data-result precision.** `result_text()` renders floats with four significant figures, so a revenue of
   20068214.8 reaches the verifier as `2.007e+07`. For `[D#]` evidence, a measurement may also differ by up to half
   a unit in the evidence's last digit. So `20,068,215` is supported by `2.007e+07`, but `20,100,000` is not.
-* **"one" is not checked in claims**, because it is usually a pronoun or determiner ("one of the sites", "no one").
-  It still counts in evidence, so a claim of "1 control room" is supported by "one control room".
+* **Written "one" is checked only when it counts something.** In a claim, "one" is a count when the next word
+  could be what it counts: "one commercial site" against "three commercial sites" is flagged, just like "1
+  commercial site". It is skipped in these cases:
+  * it is hyphenated ("one-off");
+  * it ends its phrase ("the best one.");
+  * it follows a determiner ("no one", "the one that"; the list is `no any every each some the this that which
+    such another`);
+  * it comes before a pronoun, conjunction, relative word or auxiliary ("one of", "one another", "one that",
+    "one must").
+
+  This is a bounded word-list rule, not a parser. In evidence "one" always counts, so "1 control room" is
+  supported by "one control room".
 
 Examples:
 
@@ -90,6 +104,13 @@ Evidence used:
 | North revenue reached 20,068,215 by region [D1] | unsupported, `20068215` | supported |
 | 4) The pilot ran at three sites with 91.3 percent … [S1] | unsupported, `4` | supported |
 
+The review of `67bf771` found two more false positives, which are now fixed. Before and after on this branch:
+
+| Claim | Evidence | `67bf771` | Now |
+|---|---|---|---|
+| The pilot ran at one commercial site [S1] | "The pilot ran at three commercial sites." | supported | unsupported, `one` |
+| The warehouse recorded 80 percent occupied capacity [D1] | `occupied capacity \| units` / `80 \| boxes` | supported | unsupported, `80%` |
+
 To reproduce a row, run:
 
 ```bash
@@ -114,14 +135,18 @@ the count fields (`claims_checked`, `supported`, `weak`, `unsupported`), and tho
 
 All of these were run on this branch:
 
-* `pytest tests/test_verify.py`: 33 passed. Against the previous verifier, 17 of them fail: the year, count,
-  written-count, list-marker, sign, percent, rounding and scientific-notation cases. One of the 17,
-  `test_wrong_numbers_are_flagged`, fails only because of the `97.5` → `97.5%` report format change.
-* `citation_grounding` has 19 known-answer cases, up from 6. With the previous verifier, accuracy is 0.684
-  (13/19) and `evals.run --offline` exits 1. With this branch, accuracy is 1.0 and the run exits 0. The threshold
-  is unchanged: accuracy ≥ 1.0.
-* `pytest -m offline`: 77 passed with no services.
-* Full backend suite against a throwaway pgvector container: 174 passed.
+* `pytest tests/test_verify.py`: 39 passed. Against `f4985a1`, 21 of them fail: the year, count, written-count,
+  list-marker, sign, percent, rounding, scientific-notation, written-"one" and data-percent cases. One of the 21,
+  `test_wrong_numbers_are_flagged`, fails only because of the `97.5` → `97.5%` report format change. Against
+  `67bf771`, the first review head, 4 fail: the written-"one" and data-percent cases.
+* `citation_grounding` has 25 known-answer cases, up from 6. Accuracy on the earlier verifiers:
+  * `f4985a1`: 0.684 on the first 19 cases; `evals.run --offline` exits 1.
+  * `67bf771`: 0.92 (23/25); exits 1.
+  * this branch: 1.0; exits 0.
+
+  The threshold is unchanged: accuracy ≥ 1.0.
+* `pytest -m offline`: 83 passed with no services.
+* Full backend suite against a throwaway pgvector container: 180 passed.
 * ruff, ruff format and mypy are clean.
 
 None of this involved a real model.
@@ -137,8 +162,14 @@ None of this involved a real model.
   not a unit, and the claim is flagged. The unit list is short and English-only.
 * **Data results.** The `[D#]` allowance uses the precision of the value as displayed. It cannot tell a float
   that `result_text()` rounded from a value that was already exact, so `12.46` is accepted against a displayed
-  `12.5`. A bare value in a data result can't be told apart from a percent, so percent claims are allowed
-  against it.
+  `12.5`.
+* **Percent meaning in data rests on names.** A percentage column is only recognised if its name says so:
+  `occupancy_rate` holding percentages is not recognised, so a correct percent claim against it is flagged. A
+  misleadingly named column is trusted. Columns are located by the `result_text()` layout (title line, `" | "`
+  header line, one line per row), so a cell value that itself contains `" | "` breaks the alignment for that
+  row, and the percent claim is then rejected.
+* **Written "one".** The word lists are short and English-only. Unlisted uses can still be read as counts, for
+  example "one day" in "one day the site failed".
 * **Ordinals and dates.** Digit ordinals such as `4th` are read as the count 4. Ordinal words are not read at
   all. An ISO date's month and day are separate counts.
 * **The comparison matrix is not covered.** In compare missions, chart values in the comparison matrix are
