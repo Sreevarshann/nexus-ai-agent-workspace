@@ -1,5 +1,6 @@
 import pytest
 
+from nexus.agents.analyst import result_text
 from nexus.agents.verify import verify_report
 
 pytestmark = pytest.mark.offline  # pure function: runs without Postgres (pytest -m offline)
@@ -251,3 +252,55 @@ def test_written_one_as_a_pronoun_or_idiom_is_not_a_quantity() -> None:
         "Of the three commercial sites in the pilot, the largest was the best one.  [S1]",
     ]:
         assert verify_report(claim, evidence)[1]["claims"][0]["unmatched_numbers"] == [], claim
+
+
+# A data result supports a percent claim only where its column or insight name declares a percentage.
+
+
+def test_bare_data_count_does_not_support_a_percent() -> None:
+    evidence = {"D1": "[D1] Warehouse inventory\noccupied capacity | units\n80 | boxes"}
+    _, rep = verify_report("The warehouse recorded 80 percent occupied capacity [D1].", evidence)
+    assert rep["claims"][0]["verdict"] == "unsupported" and rep["claims"][0]["unmatched_numbers"] == ["80%"]
+    _, rep = verify_report("The warehouse recorded 80 boxes of occupied capacity [D1].", evidence)
+    assert rep["claims"][0]["unmatched_numbers"] == []
+
+
+def test_percent_column_supports_a_percent_claim() -> None:
+    r = {
+        "title": "Growth by region",
+        "op": "group",
+        "columns": ["region", "growth_pct", "Share (%)", "margin"],
+        "rows": [["North", 12.5, 40.0, -3.2]],
+    }
+    evidence = {"D1": result_text("D1", r)}
+    for claim, unmatched in [
+        ("North growth_pct reached 12.5% by region [D1].", []),
+        ("North growth_pct reached 12.5 by region [D1].", []),
+        ("North share by region was 40% [D1].", []),
+        ("North growth_pct reached 13.5% by region [D1].", ["13.5%"]),
+        ("North margin by region was -3.2% [D1].", ["-3.2%"]),  # margin does not declare a percentage
+        ("North margin by region was -3.2 [D1].", []),
+    ]:
+        assert verify_report(claim, evidence)[1]["claims"][0]["unmatched_numbers"] == unmatched, claim
+
+
+def test_percent_insight_supports_a_percent_claim() -> None:
+    r = {
+        "title": "Revenue over time",
+        "op": "trend",
+        "columns": ["month", "revenue"],
+        "rows": [["2024-01", 100.0], ["2024-12", 112.5]],
+        "insights": {"change_first_to_last_pct": 12.5, "peak_value": 112.5},
+    }
+    evidence = {"D1": result_text("D1", r)}
+    _, rep = verify_report("Monthly revenue over time rose 12.5% [D1].", evidence)
+    assert rep["claims"][0]["unmatched_numbers"] == []
+    evidence = {"D1": result_text("D1", {**r, "insights": {"peak_value": 12.5}})}
+    _, rep = verify_report("Monthly revenue over time rose 12.5% [D1].", evidence)
+    assert rep["claims"][0]["unmatched_numbers"] == ["12.5%"]
+
+
+def test_data_values_written_with_a_percent_sign_support_percents() -> None:
+    evidence = {"D1": "[D1] Occupancy (group)\nsite | occupancy\nNorth | 80%"}
+    _, rep = verify_report("North site occupancy was 80% [D1].", evidence)
+    assert rep["claims"][0]["unmatched_numbers"] == []

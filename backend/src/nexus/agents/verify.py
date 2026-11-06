@@ -38,6 +38,8 @@ _ONE_AFTER = frozenset((_ONE_AFTER_WORDS + " should may might must will shall do
 _WORD_BEFORE = re.compile(r"([A-Za-z]+)\s+$")
 _WORD_AFTER = re.compile(r"\s+([A-Za-z]+)")
 _CURRENCY = ("$", "€", "£")
+_PERCENT_NAME = re.compile(r"%|(?<![a-z])(?:pct|percent|percentage)(?![a-z])", re.IGNORECASE)
+_INSIGHT_ITEM = re.compile(r'"([^"]+)": (-?[\d.]+(?:[eE][-+]?\d+)?)')
 _UNIT_AFTER = re.compile(r"\s?([A-Za-z]+)")
 # An integer followed by one of these is a measurement (which may be rounded), not a discrete count.
 _UNIT_WORDS = "kg g mg t tonnes tons lb lbs km m cm mm metres meters metre meter square sq kw mw gw kwh mwh gwh"
@@ -150,7 +152,8 @@ class _Quantity:
     resolution: Decimal  # one unit in the last displayed digit: 1 for "91", 0.1 for "91.3", 10000 for "2.007e+07"
     exact: bool  # years and discrete counts only match an equal value
     percent: bool = False
-    unitless: bool = False  # a value in a computed data result, which carries no unit or percent sign
+    data: bool = False  # a value in a computed data result, displayed at four significant figures
+    declared_percent: bool = False  # a data value whose column or insight name declares a percentage
 
 
 def _is_count(raw: str, text: str, start: int, end: int) -> bool:
@@ -168,8 +171,36 @@ def _one_is_count(text: str, start: int, end: int) -> bool:
     return before is None or before.group(1).lower() not in _ONE_BEFORE
 
 
+def _declared_percent_spans(text: str) -> list[tuple[int, int]]:
+    """Spans of data-result values whose column or insight name declares a percentage ("growth_pct", "Share (%)").
+
+    Relies on the result_text() layout: a title line, a " | "-separated header line, one line per row, and an
+    optional "insights: {json}" line.
+    """
+    lines = text.split("\n")
+    if len(lines) < 2:
+        return []
+    header = lines[1].split(" | ")
+    percent_columns = {i for i, name in enumerate(header) if _PERCENT_NAME.search(name)}
+    spans = []
+    pos = len(lines[0]) + len(lines[1]) + 2
+    for line in lines[2:]:
+        if line.startswith("insights: "):
+            items = _INSIGHT_ITEM.finditer(line)
+            spans += [(pos + m.start(2), pos + m.end(2)) for m in items if _PERCENT_NAME.search(m.group(1))]
+        elif percent_columns and len(cells := line.split(" | ")) == len(header):
+            start = pos
+            for i, cell in enumerate(cells):
+                if i in percent_columns:
+                    spans.append((start, start + len(cell)))
+                start += len(cell) + 3
+        pos += len(line) + 1
+    return spans
+
+
 def _quantities(text: str, *, claim: bool, data: bool = False) -> list[_Quantity]:
     out = []
+    declared = _declared_percent_spans(text) if data else []
     for m in _NUM.finditer(text):
         raw = m.group(2).replace(",", "")
         sign = "-" if m.group(1) in ("-", "\u2212") else ""
@@ -178,7 +209,8 @@ def _quantities(text: str, *, claim: bool, data: bool = False) -> list[_Quantity
         shown = sign + raw + ("%" if percent else "")
         value = Decimal(sign + raw)
         resolution = Decimal(1).scaleb(int(value.as_tuple().exponent))
-        out.append(_Quantity(shown, value, resolution, claim and exact, percent, data))
+        in_percent_field = any(a <= m.start() < b for a, b in declared)
+        out.append(_Quantity(shown, value, resolution, claim and exact, percent, data, in_percent_field))
     for m in _WORD_NUM.finditer(text):
         word = m.group(0).lower()
         if claim and word == "one" and not _one_is_count(text, m.start(), m.end()):
@@ -191,13 +223,14 @@ def _quantities(text: str, *, claim: bool, data: bool = False) -> list[_Quantity
 
 
 def _supported(q: _Quantity, cited: list[_Quantity]) -> bool:
-    # 80% is not supported by a bare 80 in source text; a data result's values carry no percent sign at all.
-    cited = [c for c in cited if c.percent == q.percent or (q.percent and c.unitless)]
+    # 80% is not supported by a bare 80. Data results print percentages without a sign, so a bare data value
+    # supports a percent claim only when its column or insight name declares a percentage.
+    cited = [c for c in cited if c.percent == q.percent or (q.percent and c.declared_percent)]
     if q.exact:
         return any(c.value == q.value for c in cited)
     # A measurement may be the cited value rounded to the claim's precision (91 or 91.3 for 91.3, not 91.35).
     # Data results are themselves displayed at four significant figures, so their precision is allowed too.
-    return any(abs(c.value - q.value) <= max(q.resolution, c.resolution if c.unitless else 0) / 2 for c in cited)
+    return any(abs(c.value - q.value) <= max(q.resolution, c.resolution if c.data else 0) / 2 for c in cited)
 
 
 def split_sentences(markdown: str) -> list[str]:
