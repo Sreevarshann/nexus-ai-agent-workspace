@@ -29,6 +29,14 @@ _WORD_VALUES = {w: i for i, w in enumerate(_SMALL)} | {w: 20 + 10 * i for i, w i
 _WORD_NUM = re.compile(
     rf"\b(?:({'|'.join(_TENS)})(?:-(?:{'|'.join(_SMALL[1:10])}))?|(?:{'|'.join(_SMALL)}))\b", re.IGNORECASE
 )
+# In a claim, "one" is a count only when the next word could be what it counts ("one commercial site"). It is not
+# one when hyphenated ("one-off"), last in its phrase ("the best one."), after a determiner ("no one", "the one
+# that"), or before one of these words ("one of", "one another", "one must").
+_ONE_BEFORE = frozenset(["no", "any", "every", "each", "some", "the", "this", "that", "which", "such", "another"])
+_ONE_AFTER_WORDS = "of another or and nor but who whom whose that which is was are were has had have can could would"
+_ONE_AFTER = frozenset((_ONE_AFTER_WORDS + " should may might must will shall does did").split())
+_WORD_BEFORE = re.compile(r"([A-Za-z]+)\s+$")
+_WORD_AFTER = re.compile(r"\s+([A-Za-z]+)")
 _CURRENCY = ("$", "€", "£")
 _UNIT_AFTER = re.compile(r"\s?([A-Za-z]+)")
 # An integer followed by one of these is a measurement (which may be rounded), not a discrete count.
@@ -153,6 +161,13 @@ def _is_count(raw: str, text: str, start: int, end: int) -> bool:
     return not (unit and unit.group(1).lower() in _UNITS)
 
 
+def _one_is_count(text: str, start: int, end: int) -> bool:
+    before, after = _WORD_BEFORE.search(text, 0, start), _WORD_AFTER.match(text, end)
+    if text[end : end + 1] == "-" or after is None or after.group(1).lower() in _ONE_AFTER:
+        return False
+    return before is None or before.group(1).lower() not in _ONE_BEFORE
+
+
 def _quantities(text: str, *, claim: bool, data: bool = False) -> list[_Quantity]:
     out = []
     for m in _NUM.finditer(text):
@@ -166,8 +181,8 @@ def _quantities(text: str, *, claim: bool, data: bool = False) -> list[_Quantity
         out.append(_Quantity(shown, value, resolution, claim and exact, percent, data))
     for m in _WORD_NUM.finditer(text):
         word = m.group(0).lower()
-        if claim and word == "one":
-            continue  # "one of the sites", "no one": too often not a quantity to check in a claim
+        if claim and word == "one" and not _one_is_count(text, m.start(), m.end()):
+            continue
         tens, unit = [*word.split("-"), ""][:2] if m.group(1) else (word, "")
         percent = bool(_PERCENT_AFTER.match(text, m.end()))
         value = Decimal(_WORD_VALUES[tens] + _WORD_VALUES.get(unit, 0))

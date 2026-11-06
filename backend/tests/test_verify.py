@@ -219,3 +219,35 @@ def test_data_results_in_scientific_notation() -> None:
         ("South generated 1,234 in revenue [D1].", ["1234"]),
     ]:
         assert verify_report(claim, evidence)[1]["claims"][0]["unmatched_numbers"] == unmatched, claim
+
+
+# Written "one" is checked when it counts something, and skipped when it is a pronoun or part of an idiom.
+
+
+def test_written_one_as_a_count_is_checked() -> None:
+    three_sites = {"S1": "The pilot ran at three commercial sites."}
+    one_room = {"S1": "The pilot ran from one control room."}
+    for claim, evidence, unmatched in [
+        ("The pilot ran at one commercial site [S1].", three_sites, ["one"]),
+        ("One commercial site hosted the pilot [S1].", three_sites, ["one"]),
+        ("The pilot ran at 1 commercial site [S1].", three_sites, ["1"]),
+        ("The pilot ran from one control room [S1].", one_room, []),
+        ("The pilot ran from only one control room [S1].", one_room, []),
+        ("The pilot ran from 1 control room [S1].", one_room, []),
+        ("The pilot ran from two control rooms [S1].", one_room, ["two"]),
+    ]:
+        assert verify_report(claim, evidence)[1]["claims"][0]["unmatched_numbers"] == unmatched, claim
+
+
+def test_written_one_as_a_pronoun_or_idiom_is_not_a_quantity() -> None:
+    evidence = {"S1": "The pilot ran at three commercial sites."}
+    for claim in [
+        "One of the three commercial sites ran the pilot [S1].",
+        "No one doubted the pilot at three commercial sites [S1].",
+        "The three commercial sites helped one another during the pilot [S1].",
+        "The pilot ran at three commercial sites, and the one that failed was replaced [S1].",
+        "One must note the pilot ran at three commercial sites [S1].",
+        "The pilot at three commercial sites was a one-off [S1].",
+        "Of the three commercial sites in the pilot, the largest was the best one.  [S1]",
+    ]:
+        assert verify_report(claim, evidence)[1]["claims"][0]["unmatched_numbers"] == [], claim
